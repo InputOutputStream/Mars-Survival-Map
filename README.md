@@ -307,4 +307,4 @@ PDS3 reading against a server that cuts transfers, MEDA units (real sol 1 file),
 
 ## 13. Credits and licence
 
-Code: Apache-2.0. Data: open NASA and USGS products, each listed with its link in `web/sources.html`. The site icon is AI-generated artwork (illustrative, not a NASA image). The demo video is a hypothetical scenario built from screen recordings of the app.
+Code: Apache-2.0. Data: open NASA and USGS products, each listed with its link in `web/sources.html`. The site icon is AI-generated artwork (illustrative, not a NASA image).
