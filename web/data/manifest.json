@@ -27,11 +27,6 @@
    "png": "data/layers/temp_mean_k.png"
   },
   {
-   "id": "temp_diurnal_k",
-   "label": "Layer - Amplitude thermique jour/nuit",
-   "png": "data/layers/temp_diurnal_k.png"
-  },
-  {
    "id": "radiation_msv_day",
    "label": "Layer - Dose de rayonnement",
    "png": "data/layers/radiation_msv_day.png"
@@ -45,11 +40,6 @@
    "id": "thermal_inertia_tiu",
    "label": "Layer - Inertie thermique (nuit)",
    "png": "data/layers/thermal_inertia_tiu.png"
-  },
-  {
-   "id": "dust_tau",
-   "label": "Layer - Opacité poussière",
-   "png": "data/layers/dust_tau.png"
   },
   {
    "id": "elevation_m",
@@ -83,29 +73,13 @@
    "label": "Température moyenne annuelle",
    "label_en": "Mean annual temperature",
    "unit": "K",
-   "source": "MRO MCS / THEMIS / MEDA",
+   "source": "Energy-balance model (Red Circle)",
    "lo": 170.0,
    "hi": 260.0,
    "invert": false,
    "weights": {
     "habitat": 2.0,
     "landing": 1.0
-   },
-   "exclude_gt": null,
-   "exclude_profiles": []
-  },
-  {
-   "key": "temp_diurnal_k",
-   "label": "Amplitude thermique jour/nuit",
-   "label_en": "Day/night temperature swing",
-   "unit": "K",
-   "source": "THEMIS / REMS / MEDA",
-   "lo": 40.0,
-   "hi": 110.0,
-   "invert": true,
-   "weights": {
-    "habitat": 1.0,
-    "landing": 0.5
    },
    "exclude_gt": null,
    "exclude_profiles": []
@@ -131,7 +105,7 @@
    "label": "Pression atmosphérique",
    "label_en": "Atmospheric pressure",
    "unit": "Pa",
-   "source": "derived from MOLA + MCS",
+   "source": "derived from MOLA elevation (physics model)",
    "lo": 300.0,
    "hi": 1200.0,
    "invert": false,
@@ -175,22 +149,6 @@
    },
    "exclude_gt": null,
    "exclude_profiles": []
-  },
-  {
-   "key": "dust_tau",
-   "label": "Opacité poussière",
-   "label_en": "Dust opacity",
-   "unit": "tau",
-   "source": "MRO MCS / MEDA",
-   "lo": 0.202,
-   "hi": 0.543,
-   "invert": true,
-   "weights": {
-    "habitat": 1.0,
-    "landing": 0.5
-   },
-   "exclude_gt": null,
-   "exclude_profiles": []
   }
  ],
  "profiles": {
@@ -199,11 +157,9 @@
    "keys": [
     "epithermal_cps",
     "temp_mean_k",
-    "temp_diurnal_k",
     "radiation_msv_day",
     "pressure_pa",
-    "thermal_inertia_tiu",
-    "dust_tau"
+    "thermal_inertia_tiu"
    ]
   },
   "landing": {
@@ -211,12 +167,10 @@
    "keys": [
     "epithermal_cps",
     "temp_mean_k",
-    "temp_diurnal_k",
     "radiation_msv_day",
     "pressure_pa",
     "elevation_m",
-    "thermal_inertia_tiu",
-    "dust_tau"
+    "thermal_inertia_tiu"
    ]
   }
  },
@@ -232,13 +186,6 @@
     "status": "NASA data"
    },
    {
-    "key": "dust_tau",
-    "name": "Mars Climate Database dust climatology (Montabone et al.), kriged daily maps",
-    "url": "https://www-mars.lmd.jussieu.fr/mars/dust_climatology/",
-    "taken": "cdodtot (total-column 9.3 micron absorption optical depth) x 2.6 = visible equivalent; annual mean per Mars year, median over MY 28, 29, 30, 31, 32, 33, 34; files dustscenario_MY28_v2-0.nc, dustscenario_MY29_v2-0.nc, dustscenario_MY30_v2-0.nc, dustscenario_MY31_v2-0.nc, dustscenario_MY32_v2-0.nc, dustscenario_MY33_v2-1.nc, dustscenario_MY34_v2-5.nc",
-    "status": "Data from NASA MRO MCS observations, kriged and assumption-filled by the authors (CC BY-SA 3.0: credit and share derived data alike); thresholds are the 5th and 95th percentile (team choice)"
-   },
-   {
     "key": "thermal_inertia_tiu",
     "name": "MGS TES thermal inertia, night map (Putzig & Mellon 2007)",
     "url": "https://pds-geosciences.wustl.edu/mgs/mgs-m-tes-5-timap-v1/mgst_9001/data/global_ti_night_2007.img",
@@ -248,13 +195,11 @@
     "status": "NASA data (PDS). Scoring ramp 100 to 300 tiu is a team assumption"
    },
    {
-    "key": "temp_mean_k, temp_diurnal_k",
-    "name": "MRO Mars Climate Sounder surface temperatures corrected to 03:00 and 15:00 LTST (Wang & Jin 2025)",
-    "url": "https://zenodo.org/records/17947556",
-    "label": "https://zenodo.org/records/17947556/files/MCS_tsurf_corrected.nc?download=1",
-    "sha256": "a75dbcd5e77fbc0d78591e62427843f0dadde10cd0e87e7767789025a2b7fecd",
-    "taken": "tsurf_correct[MY 28-37, Ls, ltst 3/15, lat -85..90, lon] K. Median over Mars years; mean = (T03 + T15)/2 weighted by season length; swing = T15 - T03; 130-320 K only; 75% of the year required",
-    "status": "NASA MCS data processed by Wang & Jin (CC BY 4.0); daily mean and swing are approximations from two local times"
+    "key": "temp_mean_k",
+    "name": "Annual mean surface temperature from an energy balance (Red Circle model)",
+    "url": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html",
+    "taken": "solar irradiance 586.2 W/m2, Bond albedo 0.250, eccentricity 0.0935, obliquity 25.19 deg (NASA Mars Fact Sheet); see src/mars_survival/thermal.py",
+    "status": "Physics model, latitude only, an upper estimate with errors of about 10 K; not a measurement"
    },
    {
     "key": "pressure_pa, radiation_msv_day",

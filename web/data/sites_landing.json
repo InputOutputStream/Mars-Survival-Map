@@ -1,202 +1,202 @@
 [
  {
   "rank": 1,
-  "lat": 65.25,
-  "lon": -9.25,
-  "score": 0.8796,
-  "coverage": 0.805,
-  "limiting_layer": "radiation_msv_day"
+  "lat": -33.75,
+  "lon": 61.75,
+  "score": 0.8116,
+  "coverage": 1.0,
+  "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 2,
-  "lat": 72.75,
-  "lon": 162.75,
-  "score": 0.8603,
-  "coverage": 0.805,
-  "limiting_layer": "radiation_msv_day"
+  "lat": -38.75,
+  "lon": 53.75,
+  "score": 0.7917,
+  "coverage": 1.0,
+  "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 3,
-  "lat": 65.25,
-  "lon": 177.75,
-  "score": 0.856,
-  "coverage": 0.805,
-  "limiting_layer": "radiation_msv_day"
+  "lat": -45.25,
+  "lon": 67.25,
+  "score": 0.786,
+  "coverage": 1.0,
+  "limiting_layer": "temp_mean_k"
  },
  {
   "rank": 4,
-  "lat": 56.75,
-  "lon": -9.25,
-  "score": 0.8552,
-  "coverage": 0.805,
-  "limiting_layer": "radiation_msv_day"
+  "lat": -33.75,
+  "lon": 75.25,
+  "score": 0.7775,
+  "coverage": 1.0,
+  "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 5,
-  "lat": 70.75,
-  "lon": -166.25,
-  "score": 0.8514,
-  "coverage": 0.805,
-  "limiting_layer": "radiation_msv_day"
+  "lat": -46.75,
+  "lon": 55.75,
+  "score": 0.7769,
+  "coverage": 1.0,
+  "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 6,
-  "lat": 50.25,
-  "lon": 29.25,
-  "score": 0.8473,
-  "coverage": 0.805,
+  "lat": -41.75,
+  "lon": 77.25,
+  "score": 0.7727,
+  "coverage": 1.0,
   "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 7,
-  "lat": 54.25,
-  "lon": -147.25,
-  "score": 0.8472,
-  "coverage": 0.805,
-  "limiting_layer": "radiation_msv_day"
+  "lat": -0.25,
+  "lon": -33.75,
+  "score": 0.7712,
+  "coverage": 1.0,
+  "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 8,
-  "lat": 76.25,
-  "lon": -132.25,
-  "score": 0.8428,
-  "coverage": 0.805,
-  "limiting_layer": "radiation_msv_day"
+  "lat": -6.75,
+  "lon": -72.25,
+  "score": 0.766,
+  "coverage": 1.0,
+  "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 9,
-  "lat": 55.75,
-  "lon": 171.25,
-  "score": 0.8407,
-  "coverage": 0.805,
-  "limiting_layer": "radiation_msv_day"
+  "lat": 21.75,
+  "lon": -22.75,
+  "score": 0.7643,
+  "coverage": 1.0,
+  "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 10,
-  "lat": 84.75,
-  "lon": -17.75,
-  "score": 0.8342,
-  "coverage": 0.805,
+  "lat": -13.75,
+  "lon": -57.75,
+  "score": 0.7559,
+  "coverage": 1.0,
   "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 11,
-  "lat": 66.75,
-  "lon": 10.75,
-  "score": 0.833,
-  "coverage": 0.805,
-  "limiting_layer": "radiation_msv_day"
+  "lat": 34.25,
+  "lon": 112.75,
+  "score": 0.7533,
+  "coverage": 1.0,
+  "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 12,
-  "lat": 81.25,
-  "lon": -85.25,
-  "score": 0.8327,
-  "coverage": 0.805,
+  "lat": -7.25,
+  "lon": -37.75,
+  "score": 0.7526,
+  "coverage": 1.0,
   "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 13,
-  "lat": 72.75,
-  "lon": -76.25,
-  "score": 0.8316,
-  "coverage": 0.805,
-  "limiting_layer": "radiation_msv_day"
+  "lat": 48.25,
+  "lon": 139.25,
+  "score": 0.7519,
+  "coverage": 1.0,
+  "limiting_layer": "temp_mean_k"
  },
  {
   "rank": 14,
-  "lat": 70.25,
-  "lon": 103.25,
-  "score": 0.8308,
-  "coverage": 0.805,
-  "limiting_layer": "radiation_msv_day"
+  "lat": -51.25,
+  "lon": 83.75,
+  "score": 0.7515,
+  "coverage": 1.0,
+  "limiting_layer": "temp_mean_k"
  },
  {
   "rank": 15,
-  "lat": 59.75,
-  "lon": 135.75,
-  "score": 0.8306,
-  "coverage": 0.805,
-  "limiting_layer": "radiation_msv_day"
+  "lat": -4.75,
+  "lon": 137.25,
+  "score": 0.7511,
+  "coverage": 1.0,
+  "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 16,
-  "lat": 66.75,
-  "lon": -60.75,
-  "score": 0.8298,
-  "coverage": 0.805,
+  "lat": 18.75,
+  "lon": -10.75,
+  "score": 0.7476,
+  "coverage": 1.0,
   "limiting_layer": "radiation_msv_day"
  },
  {
   "rank": 17,
-  "lat": 53.25,
-  "lon": 123.25,
-  "score": 0.829,
-  "coverage": 0.805,
-  "limiting_layer": "radiation_msv_day"
+  "lat": 26.75,
+  "lon": 123.75,
+  "score": 0.7469,
+  "coverage": 1.0,
+  "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 18,
-  "lat": 72.25,
-  "lon": -105.25,
-  "score": 0.8286,
-  "coverage": 0.805,
-  "limiting_layer": "radiation_msv_day"
+  "lat": -43.75,
+  "lon": 88.25,
+  "score": 0.7457,
+  "coverage": 1.0,
+  "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 19,
-  "lat": 74.75,
-  "lon": -13.25,
-  "score": 0.8282,
-  "coverage": 0.805,
+  "lat": -33.75,
+  "lon": 92.75,
+  "score": 0.7451,
+  "coverage": 1.0,
   "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 20,
-  "lat": 67.25,
-  "lon": -28.75,
-  "score": 0.8271,
-  "coverage": 0.805,
+  "lat": 10.75,
+  "lon": -30.25,
+  "score": 0.745,
+  "coverage": 1.0,
   "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 21,
-  "lat": 58.75,
-  "lon": 6.25,
-  "score": 0.8269,
-  "coverage": 0.805,
-  "limiting_layer": "radiation_msv_day"
+  "lat": 33.75,
+  "lon": -11.25,
+  "score": 0.7448,
+  "coverage": 1.0,
+  "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 22,
-  "lat": 64.75,
-  "lon": 149.75,
-  "score": 0.8265,
-  "coverage": 0.805,
-  "limiting_layer": "radiation_msv_day"
+  "lat": 50.25,
+  "lon": 29.25,
+  "score": 0.7439,
+  "coverage": 1.0,
+  "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 23,
-  "lat": 66.25,
-  "lon": 39.75,
-  "score": 0.826,
-  "coverage": 0.805,
-  "limiting_layer": "radiation_msv_day"
+  "lat": 4.75,
+  "lon": 83.75,
+  "score": 0.7425,
+  "coverage": 1.0,
+  "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 24,
-  "lat": 78.75,
-  "lon": -170.75,
-  "score": 0.8257,
-  "coverage": 0.805,
+  "lat": -0.75,
+  "lon": -45.75,
+  "score": 0.7424,
+  "coverage": 1.0,
   "limiting_layer": "epithermal_cps"
  },
  {
   "rank": 25,
-  "lat": 57.75,
-  "lon": 58.25,
-  "score": 0.8256,
-  "coverage": 0.805,
+  "lat": 29.75,
+  "lon": -20.25,
+  "score": 0.7417,
+  "coverage": 1.0,
   "limiting_layer": "epithermal_cps"
  }
 ]
