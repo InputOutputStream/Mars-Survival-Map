@@ -1,6 +1,6 @@
 # Mars Survival Map
 
-A survival map of Mars, built only from **real NASA data** and documented physics.
+A survival map of Mars, built only from **real data** and documented physics.
 Project of the Red Circle team for NASA Space Apps 2026, challenge "Interplanetary Survival Guide: Martian Map".
 
 Three levels:
@@ -10,7 +10,7 @@ Three levels:
   (sun and temperature), 2D and 3D views, Earth / Jezero clock.
 - **Overview** (`web/overview.html`): the whole Jezero region at 20 m/px with the detail windows drawn on it; click one to open it.
 - **Globe** (`web/globe.html`): global screening on a ~30 km grid, same layout and palette. Real layers: MOLA elevation
-  and Odyssey neutron flux (a hydrogen proxy); temperature and its day/night swing are MRO MCS measurements (processed by Wang & Jin 2025); thermal inertia is real (MGS TES); dust opacity comes from the Mars Climate Database dust climatology; the rest is absent or derived from elevation (see section 6).
+  and Odyssey neutron flux (a hydrogen proxy); thermal inertia is real (MGS TES); mean temperature is our own energy-balance model (latitude only, labelled "Physics model"); the rest is absent or derived from elevation (see section 6).
 
 > **Team rule.** Data must be openly downloadable (no login, no paywall). Measurements are preferred; models and reanalyses
 > are allowed if they are open and are labelled as models. Every number comes from a source listed in `web/sources.json` (page `web/sources.html`,
@@ -32,8 +32,8 @@ mars-survival-map/
 │   ├── site.py                  slope, roughness, hazard, flat sites, web exports (.bin, PNG, site.json)
 │   ├── eva.py                   exact sun geometry + outing windows (temperature = sinusoid fed by MEDA)
 │   ├── cli.py                   commands: demo, site-demo, site, score, sensitivity, scrape, rasterize, serve
-│   ├── thermal.py               energy-balance temperature (cross-check of the MCS layer, not shown)
-│   ├── globe_data.py            parsers for the MOLA, Odyssey, TES thermal inertia, MCS temperature and dust files
+│   ├── thermal.py               energy-balance temperature (feeds the planet-map temperature layer)
+│   ├── globe_data.py            parsers for the MOLA, Odyssey and TES thermal inertia files
 │   ├── overview.py, photo.py    overview level (CTX DEM, detail-window list) and photo level (HiRISE orthoimage crop)
 │   ├── schema.py, rasterize.py, export.py, scraper.py, demo.py     globe pipeline
 ├── scripts/                     real-data pipeline for Jezero (see section 3)
@@ -43,7 +43,7 @@ mars-survival-map/
 │   ├── build_jezero.py          assembles everything -> web/data/site/ (+ provenance.json)
 │   ├── build_overview.py        CTX DEM -> web/data/overview/ + web/data/sites.json
 │   ├── fetch_ortho_window.py    HiRISE orthoimage window -> photo.jpg for a built site (a picture, not elevation)
-│   ├── build_globe.py           real globe: MOLA, Odyssey neutrons, TES thermal inertia, MCS temperature, dust -> data/grid -> web/data
+│   ├── build_globe.py           real planet map: MOLA, Odyssey neutrons, TES thermal inertia, modelled temperature -> data/grid -> web/data
 │   └── make_report.py           web/sources.json -> docs/ANALYSIS_REPORT.md
 ├── web/                         static site, served as is (Vercel)
 │   ├── index.html               THE MAP: left sidebar (navigation), map, right sidebar (details)
@@ -78,9 +78,6 @@ with `PYTHONPATH=src`.
 ---
 
 ## 3. Build the real Jezero site
-
-Run every command **from the repository root**. 
-The server cuts long transfers; the scripts retry automatically for slow connections.
 
 ```bash
 # The two data links, defined once (HiRISE stereo pair ESP_023524_1985 / ESP_023379_1985; Windows PowerShell: $DTM = "..." and use $DTM)
@@ -145,7 +142,7 @@ A 1 m window of 1500 x 1500 pixels (2.25 million cells) makes routing in the bro
 ## 6. Build the real globe
 
 ```bash
-python scripts/build_globe.py             # downloads about 460 MB (dust: 7 Mars years of about 55 MB; `--dust-years 29 31` for fewer) into data/globe/, scores, writes web/data/
+python scripts/build_globe.py             # downloads about 60 MB into data/globe/, scores, writes web/data/
 python -m mars_survival serve             # http://localhost:8000/globe.html
 ```
 
@@ -153,12 +150,10 @@ It prints, for each layer, its coverage and value range, plus the thresholds it 
 
 - the elevation range is close to MOLA's known −8200 to +21200 m (a little smaller after averaging);
 - the thermal inertia median is a few hundred tiu;
-- the global mean temperature is near the NASA Fact Sheet's 214 K;
-- the dust medians are plausible (visible optical depth of a few tenths);
+- the modelled global mean temperature is near the NASA Fact Sheet's 214 K (it is an upper estimate);
 - the zero-flux share of the neutron table is small.
 
-Five layers are measured or processed from open data (elevation, neutron flux, thermal inertia, temperature with its
-day/night swing, dust). Pressure and radiation are derived from elevation. Rock abundance, slope, water ice depth and wind
+Three layers are NASA data (elevation, neutron flux, thermal inertia) and the mean temperature is our energy-balance model. Pressure and radiation are derived from elevation. Rock abundance, slope, water ice depth and wind
 are absent, so the score is **partial**: each cell shows its data coverage, and the viewer lists the sources. The Odyssey
 table is the first 25.7 days of mapping and mixes seasonal CO2 frost with water ice at high latitude, so read high
 latitudes with care.
@@ -184,7 +179,7 @@ Draw no scientific conclusion from these demos.
 
 ## 8. All commands, from zero to the full map
 
-Run from the repository root. Each block says what it adds to the map. Downloads run on your machine; the scripts resume interrupted transfers.
+Run from the repository root. Each block says what it adds to the map. Downloads run on your machine.
 
 ```bash
 # --- 0. Setup (once) -------------------------------------------------------------------------------------------------
@@ -215,8 +210,8 @@ python scripts/fetch_ortho_window.py "$ORTHO" --site-dir web/data/sites/jezero-1
 #   if it stops with "opj_decode() failed" (a cut transfer): re-run it (it retries each strip), or download once with  curl -C - -O "$ORTHO"  and pass the local .JP2 file instead of "$ORTHO"
 python scripts/build_overview.py --sites-only              # refresh web/data/sites.json after adding or removing a window
 
-# --- 4. Globe: global screening (adds globe.html layers; about 460 MB) -------------------------------------------------
-python scripts/build_globe.py                              # --dust-years 29 31 for fewer downloads; --min-coverage 0.3 default
+# --- 4. Globe: global screening (adds globe.html layers; about 60 MB) -------------------------------------------------
+python scripts/build_globe.py                              # --min-coverage 0.3 default
 
 # --- 5. Look at it ----------------------------------------------------------------------------------------------------
 python -m mars_survival serve                              # http://localhost:8000  (/ site, /overview.html, /globe.html, /sources.html)
@@ -275,12 +270,14 @@ Static site: `vercel.json` publishes the `web/` folder with no build step.
 2. Import the GitHub repository into Vercel (framework: "Other"), or run `npx vercel --prod` from the root.
 3. Check that no "Synthetic" banner appears: if one does, `web/data/site/` came from a demo.
 
+A GitHub workflow that rebuilds the data will come after the clock and the languages.
+
 ---
 
 ## 11. Tests
 
 ```bash
-PYTHONPATH=src python -m pytest -q        # 80 tests (some skipped without rasterio)
+PYTHONPATH=src python -m pytest -q        # 77 tests (some skipped without rasterio)
 node tests/marsclock_test.mjs             # Mars clock
 node tests/survival_test.mjs              # reach, line of sight, shadows, time budget
 # the Python / JS routing parity is run by pytest itself (tests/js_energy_parity.mjs needs a data file, do not run it alone)
@@ -293,7 +290,7 @@ PDS3 reading against a server that cuts transfers, MEDA units (real sol 1 file),
 
 ## 12. Status and to do
 
-**Done:** simulated walker (2D, 3D, walker's view), tutorial tour, English and French, safety tools (reach, radio, shadows, time budget), saved places, route card, offline mode, overview page, detail tiers and photo layer, routing in a Web Worker, walking-speed and line-thickness.
+**Done:** simulated walker (2D, 3D, walker's view), tutorial tour, English and French, safety tools (reach, radio, shadows, time budget), saved places, route card, offline mode, overview page, detail tiers and photo layer, routing in a Web Worker, walking-speed and line-thickness sliders.
 
 
 **Open work:**

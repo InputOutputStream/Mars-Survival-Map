@@ -275,16 +275,6 @@
    "status": "Team assumption."
   },
   {
-   "group": "assumption",
-   "id": "A11",
-   "name": "Dust layer processing",
-   "publisher": "Red Circle team",
-   "url": "",
-   "taken": "Annual mean of every sol, median over Mars years 28 to 34 (two of them global-storm years), 3 degree nodes treated as points, no use of the reliability index",
-   "use": "Gives a typical opacity, not the storm-season worst case. A seasonal or 90th-percentile measure would suit solar-power planning better.",
-   "status": "Team assumption."
-  },
-  {
    "group": "software",
    "id": "S1",
    "name": "Leaflet 1.9.4",
@@ -342,41 +332,8 @@
    "url": "https://pds-geosciences.wustl.edu/missions/mgs/tes-timap.html",
    "file": "https://pds-geosciences.wustl.edu/mgs/mgs-m-tes-5-timap-v1/mgst_9001/data/global_ti_night_2007.img",
    "taken": "3600 x 7200 big-endian int16, 20 pixel/degree, lon -180..180, units J m-2 K-1 s-1/2; derived range 5 to 5000. Night map used. Label, readme and datainfo read by the team's assistant; the label states no scaling or missing value, so raw integers are taken as tiu and values outside 5..5000 as no data.",
-   "use": "Globe layer thermal_inertia_tiu (loose dust versus firm ground), scored 100 to 300 tiu.",
+   "use": "Planet-map layer thermal_inertia_tiu (loose dust versus firm ground), scored 100 to 300 tiu.",
    "status": "Downloaded by scripts/build_globe.py on your machine (52 MB). The script warns if the median is outside 50 to 800 tiu."
-  },
-  {
-   "group": "data",
-   "id": "D10",
-   "name": "MCS surface temperatures corrected to 03:00 and 15:00 LTST",
-   "publisher": "Wang & Jin 2025 (Shanghai Astronomical Observatory), from NASA MRO Mars Climate Sounder data; Zenodo",
-   "url": "https://zenodo.org/records/17947556",
-   "file": "https://zenodo.org/records/17947556/files/MCS_tsurf_corrected.nc?download=1",
-   "taken": "MCS_tsurf_corrected.nc (14.9 MB, md5 921ebf89ba5f1ac35d89d62f83369c27, CC BY 4.0): tsurf_correct[MY 28..37, Ls 0..350 step 10, ltst 3 and 15, Lat -85..90 step 5, Lon -180..175 step 5] in K; 59% NaN; raw range 112.7 to 355.7 K.",
-   "use": "Globe layers temp_mean_k and temp_diurnal_k (measured, replaces the energy-balance stand-in).",
-   "status": "Downloaded and inspected by the team on their machine (layout above). Associated paper (JGR 2025) not read yet: check the correction method and whether values are bin centres or edges."
-  },
-  {
-   "group": "data",
-   "id": "D11",
-   "name": "Mars Climate Database dust climatology: column dust optical depth maps, Mars Years 24 to 36",
-   "publisher": "Montabone, Forget, Millour et al. (LMD, Open University, SSI); from NASA MRO MCS observations",
-   "url": "https://www-mars.lmd.jussieu.fr/mars/dust_climatology/",
-   "file": "https://www-mars.lmd.jussieu.fr/mars/dust_climatology/dataset_v2/dustscenario_MY29_v2-0.nc",
-   "taken": "dustscenario_MYxx kriged daily maps (NetCDF, about 55 MB per Mars year). Layout checked on MY29 by the team: cdodtot[Time 669, latitude 60 (88.5 to -88.5 step 3), longitude 120 (-180 to 177 step 3)], 9.3 micron absorption column dust optical depth of the total column; cdod610 (normalised to 610 Pa) and cdodrel (reliability) also present. Visible equivalent = x 2.6 (source page rule). Global attributes confirm: publicly available, open access, CC BY-SA 3.0, no warranty.",
-   "use": "Globe layer dust_tau: annual mean per Mars year, median over MY28 to MY34 by default.",
-   "status": "Downloaded and inspected by the team (MY29, 57.8 MB). Loader written against that layout. Licence CC BY-SA 3.0: credit, and share derived data under the same licence. Thresholds for the score are the 5th and 95th percentile of the result (team choice)."
-  },
-  {
-   "group": "data",
-   "id": "D12",
-   "name": "EMARS: Ensemble Mars Atmosphere Reanalysis System v1.0 (winds, temperature, pressure, dust)",
-   "publisher": "Greybush et al. 2019, Scientific Data; Penn State Data Commons",
-   "url": "https://doi.org/10.18113/D3W375",
-   "file": "ftp://ftp.pasda.psu.edu/pub/commons/meteorology/greybush/emars-1p0/data",
-   "taken": "NetCDF, hourly output on a 6 x 5 degree grid with 28 levels, MY24 Ls103 to MY33 Ls105 (TES and MCS assimilated); files of 1 to 5 GB, about 2 TB in all. Variables include U, V, T, ps, surface temperature, surface stress, dust opacity.",
-   "use": "Candidate for a wind layer. Not used: the volume (about 2 TB, 1 to 5 GB per file) is out of reach on our connection.",
-   "status": "Paper read by the team's assistant. Described as publicly accessible, no login or licence stated. Reanalysis (model pulled towards observations), not a measurement."
   },
   {
    "group": "physics",

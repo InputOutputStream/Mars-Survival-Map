@@ -101,7 +101,7 @@ LANGS.fr = {
     ],
     globe: [
       ['Bienvenue sur le globe de Mars', 'C’est un criblage global de Mars sur une grille de 0,5° (environ 30 km par cellule). Chaque cellule reçoit un score de survie à partir de couches de données réelles : il désigne des régions à étudier de plus près, pas des sites d’atterrissage.'],
-      ['Couche affichée', 'Choisissez ce qu’il faut dessiner : le score global, ou une couche de données (altitude, hydrogène par flux de neutrons, inertie thermique, température, poussière). La légende sous les menus explique les couleurs.'],
+      ['Couche affichée', 'Choisissez ce qu’il faut dessiner : le score global, ou une couche de données (altitude, hydrogène par flux de neutrons, inertie thermique, température modélisée). La légende sous les menus explique les couleurs.'],
       ['Opacité et fond de carte', 'Rendez la couche plus transparente pour voir la surface dessous, et changez le fond de carte pour une autre vue de Mars.'],
       ['Profil', 'Un profil change les pondérations : par exemple un habitat privilégie l’hydrogène (glace d’eau), un atterrissage privilégie la basse altitude et un sol lisse.'],
       ['Cliquez sur une cellule', 'Cliquez n’importe où pour voir pourquoi le lieu a ce score : son score, la part de données qui le couvre et le facteur qui le limite le plus.'],

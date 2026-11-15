@@ -36,18 +36,18 @@ NOTE (2026-11-07): the live source registry is `web/sources.json` (shown on `web
 2b. **Physics hypotheses** H1–H4 are listed in `physics.py` (gravity scaling of the slope part only; flat cost unscaled; sand not modelled; speed cap). H2 is now set from Cavagna, Willems & Heglund 2000 (J Physiol 528:657, flat cost x0.75, see physics.py [C00]); their 1998 Nature note is not needed; suit+equipment mass is unknown and must be a user input.
 3. **Roughness thresholds (0.25/0.6/1.5 m)**: no NASA source yet. Candidate: rock-height / clearance figures for Mars 2020 ENav (not found on the page read).
 4. **Water-equivalent hydrogen product** (D7): exact file not identified.
-5. **Dust opacity**: no source collected yet (candidate: MEDA/MCS products).
+5. **Dust opacity**: no layer. The sources that offered one (LMD dust climatology, CC BY-SA 3.0; MCS temperatures, CC BY 4.0; EMARS, no stated licence) were removed because they are not freely usable without restriction / OSI-licensed as the Space Apps 2026 rules require.
 6. **Elevation → radiation/pressure** relations in `schema.derive_from_elevation` are my approximations; replace with Guo et al. 2015 + MEDA pressure data.
 
 ## D. Software resources
-| Name          | URL                             | Use                                                                                                          | Licence      |
-| ------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------ |
-| Leaflet 1.9.4 | https://leafletjs.com           | 2D map viewer (vendored)                                                                                     | BSD-2-Clause |
-| three.js r160 | https://threejs.org             | 3D terrain view (vendored)                                                                                   | MIT          |
-| GDAL          | https://gdal.org                | Read/clip/convert PDS `.IMG` and GeoTIFF; can read a window of a remote file via `/vsicurl/` (untested here) | MIT/X        |
-| NumPy         | https://numpy.org               | Raster maths                                                                                                 | BSD          |
-| Pillow        | https://python-pillow.org       | PNG output                                                                                                   | HPND         |
-| Requests      | https://requests.readthedocs.io | Polite downloads                                                                                             | Apache-2.0   |
+| Name | URL | Use | Licence |
+|---|---|---|---|
+| Leaflet 1.9.4 | https://leafletjs.com | 2D map viewer (vendored) | BSD-2-Clause |
+| three.js r160 | https://threejs.org | 3D terrain view (vendored) | MIT |
+| GDAL | https://gdal.org | Read/clip/convert PDS `.IMG` and GeoTIFF; can read a window of a remote file via `/vsicurl/` (untested here) | MIT/X |
+| NumPy | https://numpy.org | Raster maths | BSD |
+| Pillow | https://python-pillow.org | PNG output | HPND |
+| Requests | https://requests.readthedocs.io | Polite downloads | Apache-2.0 |
 
 
 ## Update 2026-11-06 — browser tests and Cavagna 2000

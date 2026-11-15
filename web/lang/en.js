@@ -101,7 +101,7 @@ LANGS.en = {
     ],
     globe: [
       ['Welcome to the Mars globe', 'This is a global screening of Mars on a 0.5° grid (about 30 km per cell). Each cell gets a survivability score from real data layers: it shows regions worth a closer look, not landing spots.'],
-      ['Layer shown', 'Choose what to draw: the overall score, or one data layer such as elevation, hydrogen (neutron flux), thermal inertia, temperature or dust. The legend below the menus explains the colours.'],
+      ['Layer shown', 'Choose what to draw: the overall score, or one data layer such as elevation, hydrogen (neutron flux), thermal inertia, or modelled temperature. The legend below the menus explains the colours.'],
       ['Opacity and basemap', 'Make the layer more transparent to see the surface underneath, and switch the basemap if you want another view of Mars.'],
       ['Profile', 'A profile changes the weights: for example a habitat cares more about hydrogen (water ice), a landing cares more about low elevation and smooth ground.'],
       ['Click a cell', 'Click anywhere on the map to see why the place scores the way it does: its score, how much data covers it, and the factor that limits it most.'],

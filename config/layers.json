@@ -7,9 +7,7 @@
     "water_ice_depth_m":     { "file": "data/files/swim_ice_depth_m.tif", "valid_range": [0, 100] },
     "weh_wt_pct":            { "file": "data/files/gr_weh_pct.tif",       "valid_range": [0, 100] },
     "temp_mean_k":           { "file": "data/files/temp_mean_k.tif",      "valid_range": [100, 330] },
-    "temp_diurnal_k":        { "file": "data/files/temp_diurnal_k.tif",   "valid_range": [0, 200] },
     "rock_abundance_frac":   { "file": "data/files/rock_abundance.tif",   "valid_range": [0, 1] },
-    "dust_tau":              { "file": "data/files/dust_tau.tif",         "valid_range": [0, 10] },
     "resource_minerals_idx": { "file": "data/files/minerals_index.tif",   "valid_range": [0, 1] }
   }
 }
