@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sources and assumptions, Mars Survival Map</title>
+<style>
+@font-face { font-family: "Public Sans"; src: url(vendor/fonts/public-sans-latin-wght-normal.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Bricolage Grotesque"; src: url(vendor/fonts/bricolage-grotesque-latin-wght-normal.woff2) format("woff2"); font-weight: 200 800; font-display: swap; }
+:root { --ink:#1b2540; --ink-2:#4b5670; --ink-3:#7b869c; --paper:#eef1f5; --card:#fff; --line:#dde2ea; --leaf:#4a9a2f; --sky:#2f9be0; --ember:#ec7a2c; --violet:#6a3fa8; --mars:#b8432a; color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.55 "Public Sans", system-ui, sans-serif; }
+header { background: var(--ink); color: #fff; padding: 28px 20px 26px; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; } header .wrap { padding: 0; }
+header a { color: #cfe6f7; font-weight: 600; text-underline-offset: 3px; }
+h1 { font: 700 34px/1.1 "Bricolage Grotesque", sans-serif; margin: 10px 0 8px; letter-spacing: -.01em; }
+header p { margin: 0; max-width: 62ch; color: #d7deec; }
+main { padding: 26px 0 60px; }
+h2 { font: 650 22px/1.2 "Bricolage Grotesque", sans-serif; margin: 34px 0 6px; }
+.lede { color: var(--ink-2); margin: 0 0 14px; max-width: 70ch; }
+.entry { background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--sky); border-radius: 12px; padding: 14px 18px 12px; margin: 12px 0; }
+.entry.physics { border-left-color: var(--leaf); } .entry.assumption { border-left-color: var(--ember); } .entry.software { border-left-color: var(--violet); }
+.entry h3 { margin: 0 0 2px; font-size: 16px; } .entry .pub { color: var(--ink-3); font-size: 13px; margin: 0 0 8px; }
+dl { display: grid; grid-template-columns: 150px 1fr; gap: 6px 14px; margin: 0; font-size: 14px; }
+dt { color: var(--ink-2); font-weight: 650; } dd { margin: 0; overflow-wrap: anywhere; }
+a { color: var(--ink); text-underline-offset: 3px; }
+.id { display: inline-block; min-width: 30px; text-align: center; background: var(--paper); border-radius: 8px; padding: 0 7px; margin-right: 8px; font-weight: 700; font-size: 12.5px; }
+@media (max-width: 640px) { dl { grid-template-columns: 1fr; gap: 0; } dt { margin-top: 8px; } h1 { font-size: 28px; } }
+</style>
+</head>
+<body>
+<header><div class="wrap"><a href="index.html">Back to the map</a><h1>Sources and assumptions</h1>
+<p>Every number in the map comes from one of these, or is labelled as our assumption. Where a value was measured on Earth or the Moon and used on Mars, we say so: it is a hypothesis and may be wrong.</p></div></header>
+<main class="wrap" id="out"><p>Loading…</p></main>
+<script>
+const G = { data: ['Data sources', 'What we download from NASA and partners, and what we take from it.'],
+  physics: ['Physics sources', 'Measurements and models behind walking effort, pace and limits.'],
+  assumption: ['Team assumptions', 'Values with no source yet. Each one is a decision we made and want to replace.'],
+  software: ['Software and fonts', 'Open-source tools shipped with the site.'] };
+const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const link = u => u ? `<a href="${esc(u)}" rel="noopener">${esc(u)}</a>` : '';
+fetch('sources.json').then(r => r.json()).then(j => {
+  let h = '';
+  for (const g of Object.keys(G)) {
+    h += `<h2>${G[g][0]}</h2><p class="lede">${G[g][1]}</p>`;
+    for (const e of j.entries.filter(x => x.group === g)) {
+      h += `<article class="entry ${g}"><h3><span class="id">${e.id}</span>${esc(e.name)}</h3>${e.publisher ? `<p class="pub">${esc(e.publisher)}</p>` : '<p class="pub"></p>'}<dl>` +
+        (e.url ? `<dt>Link</dt><dd>${link(e.url)}</dd>` : '') + (e.file ? `<dt>Exact file</dt><dd>${link(e.file)}</dd>` : '') +
+        (e.taken ? `<dt>${g === 'assumption' ? 'Value' : 'Data taken'}</dt><dd>${esc(e.taken)}</dd>` : '') +
+        (e.use ? `<dt>${g === 'assumption' ? 'Why it is a guess' : 'Used for'}</dt><dd>${esc(e.use)}</dd>` : '') +
+        `<dt>Status</dt><dd>${esc(e.status)}</dd></dl></article>`;
+    }
+  }
+  document.getElementById('out').innerHTML = h + `<p class="lede" style="margin-top:30px">Updated ${esc(j.updated)}.</p>`;
+});
+</script>
+</body>
+</html>

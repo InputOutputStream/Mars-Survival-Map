@@ -1,0 +1,18 @@
+[
+  {
+    "id": "trek-mola",
+    "label": "NASA Trek — MOLA colorized shaded relief",
+    "url": "https://trek.nasa.gov/tiles/Mars/EQ/Mars_MGS_MOLA_ClrShade_merge_global_463m/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
+    "maxNativeZoom": 5,
+    "verified": true,
+    "_comment": "Tested in a browser on 2026-11-06: tiles z0 and z1 (rows 0-1, columns 0-3) loaded. Scheme GoogleCRS84Quad: 2^(z+1) columns x 2^z rows, row 0 at the north, column 0 at longitude -180. Maximum zoom and cross-site (CORS) use are NOT tested."
+  },
+  {
+    "id": "trek-viking",
+    "label": "NASA Trek — Viking MDIM 2.1 color mosaic",
+    "url": "https://trek.nasa.gov/tiles/Mars/EQ/Mars_Viking_MDIM21_ClrMosaic_global_232m/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
+    "maxNativeZoom": 5,
+    "verified": false,
+    "_comment": "Same caveat: not tested."
+  }
+]

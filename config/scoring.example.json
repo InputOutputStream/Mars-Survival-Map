@@ -1,0 +1,7 @@
+{
+  "_comment": "Copy this file to config/scoring.json to override thresholds and weights WITHOUT touching the code. 'lo'/'hi': raw value that gives score 0 / 1 (if invert=true, 'less = better'). 'exclude_gt': hard constraint. The values below are EXAMPLES, not scientific recommendations.",
+  "layers": {
+    "slope_deg": { "lo": 2, "hi": 12, "exclude_gt": 20, "weights": { "landing": 4.0 } },
+    "radiation_msv_day": { "weights": { "habitat": 3.0 } }
+  }
+}

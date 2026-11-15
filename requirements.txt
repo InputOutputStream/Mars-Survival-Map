@@ -1,0 +1,10 @@
+numpy>=1.24
+requests>=2.31
+pillow>=10
+# Optional but recommended (reading PDS/GeoTIFF rasters, GeoTIFF export):
+rasterio>=1.3
+
+netCDF4
+
+# Installs the project itself (so `python -m mars_survival` works) plus rasterio, netCDF4 and pytest.
+-e .[geo,dev]

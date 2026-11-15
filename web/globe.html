@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mars Survival Map</title>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<style>
+  @font-face { font-family: "Public Sans"; src: url(vendor/fonts/public-sans-latin-wght-normal.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
+  @font-face { font-family: "Bricolage Grotesque"; src: url(vendor/fonts/bricolage-grotesque-latin-wght-normal.woff2) format("woff2"); font-weight: 200 800; font-display: swap; }
+  :root { --leaf:#4a9a2f; --sky:#2f9be0; --mars:#b8432a; --sun:#f0bf2b; --crimson:#a1162f; --ember:#ec7a2c; --violet:#6a3fa8;
+          --ink:#1b2540; --ink-2:#4b5670; --ink-3:#7b869c; --paper:#eef1f5; --card:#fff; --line:#dde2ea; --display:"Bricolage Grotesque", system-ui, sans-serif; color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--paper); color: var(--ink); font: 14px/1.45 "Public Sans", system-ui, sans-serif; }
+  #app { display: grid; grid-template-columns: 300px 1fr 340px; height: 100%; }
+  aside { background: var(--card); overflow-y: auto; padding: 0 0 24px; z-index: 5; }
+  #left { border-right: 1px solid var(--line); } #right { border-left: 1px solid var(--line); }
+  .brand { background: var(--ink); color: #fff; padding: 16px 16px 14px; border-bottom: 4px solid var(--mars); }
+  .brand h1 { font: 700 21px/1.1 var(--display); margin: 0 0 4px; letter-spacing: -.01em; } .brand .note { color: #cfd7e8; }
+  .sec { padding: 14px 16px 4px; } .sec + .sec { border-top: 1px solid var(--line); margin-top: 10px; }
+  h2 { font: 650 12px/1 "Public Sans"; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); margin: 0 0 8px; }
+  select { width: 100%; margin: 3px 0 9px; background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; font: inherit; }
+  input[type=range] { width: 100%; margin: 3px 0 9px; accent-color: var(--sky); }
+  #map { background: #1b2540; position: relative; }
+  #banner { display: none; background: var(--crimson); color: #fff; padding: 6px 10px; border-radius: 8px; margin: 10px 16px 0; font-weight: 700; font-size: 12px; }
+  #banner.real { background: #e8f5e2; color: #2d6a1b; border: 1px solid #b9dcaa; font-weight: 600; }
+  #legend { height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--crimson), var(--ember), var(--sun), var(--leaf), #2e7d1a); }
+  .lab { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); margin-top: 3px; }
+  .note { color: var(--ink-2); font-size: 12.5px; } label.note { display: block; }
+  #sites { max-height: 220px; overflow: auto; font-size: 12.5px; } #sites div { cursor: pointer; padding: 4px 6px; border-radius: 6px; } #sites div:hover { background: #fff4d1; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; } td { padding: 4px 3px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  td.v { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; } .bar { height: 7px; background: #e6eaf1; border-radius: 4px; min-width: 50px; } .bar i { display: block; height: 100%; border-radius: 4px; }
+  .lim td { color: var(--crimson); font-weight: 700; } .big { font: 700 28px/1.1 var(--display); } .tag { background: var(--crimson); color: #fff; border-radius: 8px; padding: 1px 7px; font-size: 11px; }
+  .chip { display: inline-block; border-radius: 10px; padding: 0 7px; font-size: 11px; font-weight: 650; color: #fff; } .chip.nasa { background: var(--leaf); } .chip.phys { background: var(--sky); } .chip.team { background: var(--ember); }
+  details { margin: 6px 0 10px; } summary { cursor: pointer; color: var(--ink); font-weight: 650; }
+  a { color: var(--sky); font-weight: 600; text-underline-offset: 3px; } .links a { display: block; padding: 5px 0; }
+  .src { padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; word-break: break-word; }
+  button.lang { position: absolute; z-index: 1000; top: 10px; right: 12px; background: #fff; color: var(--ink); border: 0; border-radius: 10px; padding: 6px 11px; cursor: pointer; font-weight: 700; box-shadow: 0 2px 8px rgba(27,37,64,.25); }
+  #coords { position: absolute; z-index: 1000; bottom: 10px; left: 10px; background: rgba(255,255,255,.95); padding: 4px 10px; border-radius: 8px; font-size: 12px; font-variant-numeric: tabular-nums; box-shadow: 0 2px 8px rgba(27,37,64,.25); }
+  #coords:empty { display: none; }
+  .leaflet-image-layer { image-rendering: pixelated; }
+  .mob { display: none; position: absolute; z-index: 1000; top: 10px; background: #fff; border: 0; border-radius: 10px; padding: 7px 11px; font-weight: 700; box-shadow: 0 2px 8px rgba(27,37,64,.25); cursor: pointer; color: var(--ink); }
+  #openL { left: 10px; } #openR { left: 76px; }
+  @media (max-width: 960px) { #app { grid-template-columns: 1fr; } aside { position: fixed; top: 0; bottom: 0; width: min(88vw, 340px); transform: translateX(-105%); transition: transform .2s; z-index: 2000; box-shadow: 0 0 30px rgba(0,0,0,.35); }
+    #right { right: 0; left: auto; transform: translateX(105%); } #left { left: 0; } #app[data-l="open"] #left, #app[data-r="open"] #right { transform: none; } .mob { display: block; } button.lang { right: 10px; } .leaflet-top.leaflet-left { top: 52px; } }
+
+  .draftnote { position: fixed; z-index: 3000; left: 50%; bottom: 8px; transform: translateX(-50%); background: #fff4d1; color: #1b2540; border: 1px solid #f0bf2b; border-radius: 14px; padding: 3px 12px; font: 600 12px/1.4 'Public Sans', system-ui, sans-serif; text-decoration: none; box-shadow: 0 2px 8px rgba(27,37,64,.2); white-space: nowrap; }
+  select.lang { position: absolute; z-index: 1000; top: 10px; right: 12px; width: auto; min-width: 0; background: #fff; color: #1b2540; border: 0; border-radius: 10px; padding: 6px 8px; font: 700 13px 'Public Sans', system-ui, sans-serif; cursor: pointer; box-shadow: 0 2px 8px rgba(27,37,64,.25); }
+.pill-btn { border: 1px solid #c9d0dc; background: #fff; border-radius: 16px; padding: 4px 12px; font: 600 12.5px var(--sans, system-ui); cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="left">
+    <div class="brand"><h1 id="t-title"></h1><div class="note" id="t-sub"></div></div>
+    <div id="banner"></div>
+    <div class="sec"><h2 id="t-view"></h2>
+      <label class="note" id="t-overlay"></label><select id="overlay"></select>
+      <label class="note" id="t-opacity"></label><input id="opacity" type="range" min="0.1" max="1" step="0.05" value="0.85">
+      <label class="note" id="t-basemap"></label><select id="basemap"></select>
+      <div id="legend"></div><div class="lab"><span id="t-hostile"></span><span id="t-favorable"></span></div>
+      <div class="note" style="margin:8px 0 6px" id="t-excl"></div></div>
+    <div class="sec"><h2 id="t-profile"></h2><select id="profile"></select></div>
+    <div class="sec links"><h2 id="t-more"></h2><a href="index.html" id="t-open"></a><a href="sources.html" id="t-srcpage"></a><button class="pill-btn" id="tourbtn" style="margin-top:8px"></button></div>
+  </aside>
+  <div id="map"><button class="mob" id="openL">☰</button><button class="mob" id="openR">i</button><div id="coords"></div></div>
+  <aside id="right">
+    <div class="sec"><h2 id="t-inspect"></h2><div id="inspect" class="note"></div></div>
+    <div class="sec"><h2 id="t-sites"></h2><div id="sites"></div></div>
+    <div class="sec"><h2 id="t-datah"></h2><div id="datasrc" class="note"></div></div>
+    <div class="sec"><details><summary id="t-how"></summary><div class="note" id="howdesc"></div><table id="howtable"></table></details>
+      <h2 id="t-zoom"></h2><div class="note" id="t-zoomtxt"></div></div>
+  </aside>
+</div>
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="lang/registry.js"></script>
+<script src="common.js"></script>
+<script src="tour.js"></script>
+<script>loadLanguage();</script>
+<script>
+const T = makeT('globe');
+const $ = id => document.getElementById(id);
+document.documentElement.lang = LANG;
+for (const [id, k] of [['t-title','title'],['t-sub','sub'],['t-view','view'],['t-overlay','overlay'],['t-opacity','opacity'],['t-basemap','basemap'],['t-hostile','hostile'],['t-favorable','favorable'],['t-excl','excl'],['t-inspect','inspect'],['t-profile','profile'],['t-sites','sites'],['t-how','how'],['howdesc','howdesc'],['t-zoom','zoom'],['t-zoomtxt','zoomtxt'],['t-open','open'],['t-more','more'],['t-srcpage','srcpage'],['t-datah','datah']]) $(id).textContent = T(k);
+{ const ls = langToggle(); Object.assign(ls.style, { position: 'absolute', zIndex: 1000, top: '10px', right: '12px', width: 'auto', maxWidth: '160px' }); $('map').appendChild(ls); }
+const app = $('app'); $('openL').onclick = () => { app.dataset.l = app.dataset.l === 'open' ? '' : 'open'; app.dataset.r = ''; };
+$('openR').onclick = () => { app.dataset.r = app.dataset.r === 'open' ? '' : 'open'; app.dataset.l = ''; };
+$('map').addEventListener('click', () => { app.dataset.l = ''; app.dataset.r = ''; });
+
+// EPSG:4326: compatible with equirectangular WMTS tiles (2 x 1 tiles at zoom 0)
+const BOUNDS = [[-90, -180], [90, 180]];
+const map = L.map('map', { crs: L.CRS.EPSG4326, minZoom: 0, maxZoom: 7, zoomSnap: 0.25, attributionControl: false, worldCopyJump: false });
+map.fitBounds(BOUNDS); map.setMaxBounds([[-100, -190], [100, 190]]);
+for (let a = -60; a <= 60; a += 30) L.polyline([[a, -180], [a, 180]], { color: '#fff', weight: 0.5, opacity: 0.25, interactive: false }).addTo(map);
+for (let o = -150; o <= 150; o += 30) L.polyline([[-90, o], [90, o]], { color: '#fff', weight: 0.5, opacity: 0.25, interactive: false }).addTo(map);
+
+let M, layer = null, markers = L.layerGroup().addTo(map), sitesCache = {}, baseLayer = null, pin = null;
+const binCache = {};
+const sel = $('overlay'), op = $('opacity'), prof = $('profile');
+map.on('mousemove', e => { $('coords').textContent = `lat ${e.latlng.lat.toFixed(1)}, lon ${e.latlng.lng.toFixed(1)}`; });
+
+async function bin(url, ctor) { if (!binCache[url]) { const r = await fetch(url); if (!r.ok) throw new Error(url); binCache[url] = new ctor(await r.arrayBuffer()); } return binCache[url]; }
+const lname = k => { const d = M.layers.find(l => l.key === k); return d ? ((((window.LANGS[LANG] || {}).globe || {}).layernames || {})[k] || (LANG === 'fr' ? d.label : d.label_en)) : k; };
+const barColor = s => s < .25 ? '#a1162f' : s < .5 ? '#ec7a2c' : s < .75 ? '#f0bf2b' : '#4a9a2f';
+const fmt = v => Math.abs(v) >= 1000 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2);
+
+async function inspect(latlng) {
+  const W = M.width, H = M.height, c = Math.floor((latlng.lng + 180) / M.res_deg), r = Math.floor((90 - latlng.lat) / M.res_deg);
+  if (r < 0 || c < 0 || r >= H || c >= W) return;
+  const p = prof.value, i = r * W + c, box = $('inspect');
+  if (pin) map.removeLayer(pin);
+  pin = L.circleMarker([90 - (r + .5) * M.res_deg, -180 + (c + .5) * M.res_deg], { radius: 7, color: '#f0bf2b', weight: 3, fillOpacity: 0 }).addTo(map);
+  try {
+    const [tot, cov, exc, lim] = await Promise.all([`total_${p}.u8`, `cov_${p}.u8`, `excl_${p}.u8`, `lim_${p}.u8`].map(f => bin(`data/bins/${f}`, Uint8Array)));
+    const keys = M.profiles[p].keys, rows = [];
+    for (const L_ of M.layers) {
+      const w = L_.weights[p] || 0; if (w <= 0) continue;
+      const [sc, raw] = await Promise.all([bin(`data/bins/score_${L_.key}.u8`, Uint8Array), bin(`data/bins/raw_${L_.key}.f32`, Float32Array)]);
+      rows.push({ key: L_.key, u: L_.unit, w, s: sc[i] === 255 ? null : sc[i] / 254, v: raw[i], limiting: keys[lim[i]] === L_.key });
+    }
+    const total = tot[i] === 255 ? null : tot[i] / 254;
+    box.innerHTML = `<div>lat ${(90 - (r + .5) * M.res_deg).toFixed(2)}, lon ${(-180 + (c + .5) * M.res_deg).toFixed(2)}</div>` +
+      `<div class="big">${total === null ? T('nodata') : total.toFixed(2)} <span class="note">${T('score')}</span></div>` +
+      `<div>${T('cov')}: ${(cov[i] / 254 * 100).toFixed(0)}% ${exc[i] ? `<span class="tag">${T('excluded')}</span>` : ''}</div>` +
+      `<table><tr><td>${T('layer')}</td><td></td><td class="v">${T('value')}</td><td class="v">${T('w')}</td></tr>` +
+      rows.map(x => `<tr class="${x.limiting && total !== null ? 'lim' : ''}"><td>${lname(x.key)}</td><td style="width:60px"><div class="bar"><i style="width:${x.s === null ? 0 : x.s * 100}%;background:${x.s === null ? '#555' : barColor(x.s)}"></i></div></td>` +
+        `<td class="v">${Number.isFinite(x.v) ? fmt(x.v) + ' ' + x.u : '–'}</td><td class="v">${x.w}</td></tr>`).join('') + '</table>' +
+      (total !== null && !exc[i] ? `<div>${T('limiting')}: <b>${lname(keys[lim[i]])}</b></div>` : '');
+  } catch (e) { box.textContent = T('clickhint'); }
+}
+map.on('click', e => inspect(e.latlng));
+
+async function showSites(p) {
+  markers.clearLayers(); const box = $('sites'); box.innerHTML = '';
+  if (!p || !M.sites[p]) return;
+  if (!sitesCache[p]) sitesCache[p] = await (await fetch(M.sites[p])).json();
+  sitesCache[p].forEach(s => {
+    const m = L.circleMarker([s.lat, s.lon], { radius: 5, color: '#fff', weight: 1.5, fillColor: '#2f9be0', fillOpacity: 1 })
+      .bindPopup(T('site', s.rank, s.score, lname(s.limiting_layer), s.coverage)).addTo(markers);
+    const d = document.createElement('div'); d.textContent = `#${s.rank}  ${s.score.toFixed(2)}  (${s.lat}, ${s.lon})  – ${lname(s.limiting_layer)}`;
+    d.onclick = () => { map.setView([s.lat, s.lon], 3); m.openPopup(); inspect({ lat: s.lat, lng: s.lon }); }; box.appendChild(d);
+  });
+}
+function setOverlay(i) {
+  const o = M.overlays[i]; if (layer) map.removeLayer(layer);
+  layer = L.imageOverlay(o.png, BOUNDS, { opacity: parseFloat(op.value) }).addTo(map);
+  if (o.profile) { prof.value = o.profile; showSites(o.profile); } else showSites(null);
+}
+async function setBasemap(id) {
+  if (baseLayer) { map.removeLayer(baseLayer); baseLayer = null; }
+  const b = (window.BASEMAPS || []).find(x => x.id === id); if (!b || !b.url) return;
+  baseLayer = L.tileLayer(b.url, { maxNativeZoom: b.maxNativeZoom || 5, noWrap: true, errorTileUrl: '' }).addTo(map); baseLayer.bringToBack();
+}
+
+(async () => {
+  try { M = await (await fetch('data/manifest.json')).json(); }
+  catch (e) { $('left').innerHTML = `<div class="brand"><h1>Mars Survival Map</h1></div><div class="sec"><p>${T('nomanifest')}</p></div>`; return; }
+  try { window.BASEMAPS = await (await fetch('basemaps.json')).json(); } catch (e) { window.BASEMAPS = []; }
+  if (M.synthetic) { $('banner').style.display = 'block'; $('banner').textContent = T('synth'); }
+  else { const n = (M.sources && M.sources.layers ? M.sources.layers.filter(x => x.status.startsWith('NASA data')).length : 0);
+    $('banner').className = 'real'; $('banner').style.display = 'block'; $('banner').textContent = T('partial', n); }
+  const chip = st => `<span class="chip ${st.startsWith('NASA') ? 'nasa' : st.startsWith('Physics') ? 'phys' : 'team'}">${st.split(';')[0].split(',')[0]}</span>`;
+  $('datasrc').innerHTML = M.sources && M.sources.layers ? M.sources.layers.map(x => `<div class="src">${chip(x.status)} <b>${x.name}</b><br>${x.taken}<br>${x.url ? `<a href="${x.url}" rel="noopener">${x.url}</a><br>` : ''}<i>${x.status}</i></div>`).join('') : '';
+  M.overlays.forEach((o, i) => sel.add(new Option(o.label, i)));
+  $('basemap').add(new Option(T('none'), ''));
+  window.BASEMAPS.forEach(b => $('basemap').add(new Option(b.label + (b.verified ? '' : ' ⚠'), b.id)));
+  Object.entries(M.profiles || {}).forEach(([k, v]) => prof.add(new Option(v.label, k)));
+  $('inspect').textContent = T('clickhint');
+  $('howtable').innerHTML = `<tr><td>${T('layer')}</td><td class="v">0 → 1</td><td class="v">${T('w')}</td></tr>` + (M.layers || []).map(l => {
+    const a = l.invert ? l.hi : l.lo, b = l.invert ? l.lo : l.hi, w = Object.entries(l.weights).map(([k, v]) => `${k[0].toUpperCase()}${v}`).join(' ');
+    return `<tr><td>${lname(l.key)}</td><td class="v">${a} → ${b} ${l.unit}${l.exclude_gt != null ? ` <span class="tag">&gt;${l.exclude_gt}</span>` : ''}</td><td class="v">${w}</td></tr>`; }).join('');
+  sel.onchange = () => setOverlay(+sel.value);
+  op.oninput = () => layer && layer.setOpacity(parseFloat(op.value));
+  $('basemap').onchange = e => setBasemap(e.target.value);
+  setOverlay(0); window.__ready = true;
+})();
+
+const TT = makeT('tour');
+{
+  const small = () => innerWidth < 960;
+  const side = s => () => { const a = $('app'); if (small()) { a.dataset.l = s === 'l' ? 'open' : ''; a.dataset.r = s === 'r' ? 'open' : ''; } };
+  const sel = ['#t-title', '#overlay', '#opacity', '#profile', '#map', '#sites', '#datasrc', '.links'];
+  const sd = ['l', 'l', 'l', 'l', '', 'r', 'r', 'l'];
+  $('tourbtn').textContent = TT('btn');
+  $('tourbtn').onclick = () => { const txt = TT('globe'); startTour(sel.map((s, k) => ({ sel: s, before: sd[k] ? side(sd[k]) : () => { if (small()) { $('app').dataset.l = ''; $('app').dataset.r = ''; } }, title: txt[k][0], text: txt[k][1] })), TT); };
+}
+</script>
+<script>if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
+</body>
+</html>

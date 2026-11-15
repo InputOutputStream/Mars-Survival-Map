@@ -1,0 +1,1133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mars Survival Map</title>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js","three/addons/":"./vendor/three-addons/"}}</script>
+<style>
+@font-face { font-family: "Public Sans"; src: url(vendor/fonts/public-sans-latin-wght-normal.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Bricolage Grotesque"; src: url(vendor/fonts/bricolage-grotesque-latin-wght-normal.woff2) format("woff2"); font-weight: 200 800; font-display: swap; }
+
+:root {
+  /* project palette: leaf, sky, Martian red, yellow, crimson, orange, violet */
+  --leaf: #4a9a2f;   --sky: #2f9be0;   --mars: #b8432a;  --sun: #f0bf2b;
+  --crimson: #a1162f; --ember: #ec7a2c; --violet: #6a3fa8;
+  --ink: #1b2540;    --ink-2: #4b5670;  --ink-3: #7b869c;
+  --paper: #eef1f5;  --card: #ffffff;   --line: #dde2ea;  --wash: #f6f8fb;
+  --sans: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: "Bricolage Grotesque", "Public Sans", system-ui, sans-serif;
+  --left: 372px; --right: 392px;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; background: var(--paper); color: var(--ink); font: 14px/1.45 var(--sans); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- structure: navigation | map | details ---------- */
+#app { display: grid; grid-template-columns: var(--left) 1fr var(--right); height: 100%; transition: grid-template-columns .22s ease; }
+#app[data-left="closed"] { grid-template-columns: 0 1fr var(--right); }
+#app[data-right="closed"] { grid-template-columns: var(--left) 1fr 0; }
+#app[data-left="closed"][data-right="closed"] { grid-template-columns: 0 1fr 0; }
+aside { background: var(--card); overflow: hidden; position: relative; z-index: 5; min-width: 0; }
+.closer { display: none; position: absolute; top: 12px; right: 12px; z-index: 6; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: #fff; place-items: center; }
+#left { box-shadow: 1px 0 0 var(--line), 4px 0 18px rgba(27,37,64,.07); display: flex; flex-direction: column; }
+#right { box-shadow: -1px 0 0 var(--line), -4px 0 18px rgba(27,37,64,.07); }
+.scroll { overflow-y: auto; overscroll-behavior: contain; height: 100%; }
+#left .scroll { height: auto; flex: 1; }
+#main { position: relative; z-index: 1; isolation: isolate; min-width: 0; background: #d9d4cf; }
+#map, #three { position: absolute; inset: 0; } #three { display: none; }
+#map { background: #cfc8c2; }
+.base-img { filter: sepia(.55) saturate(1.9) hue-rotate(-14deg) brightness(1.04) contrast(1.02); }
+.leaflet-container { font: inherit; }
+
+/* ---------- brand + search ---------- */
+.brand { display: flex; gap: 12px; align-items: center; padding: 16px 18px 6px; }
+.brand svg { flex: none; }
+.brand h1 { margin: 0; font: 700 21px/1.05 var(--display); letter-spacing: -.01em; }
+.brand p { margin: 3px 0 0; color: var(--ink-2); font-size: 12.5px; }
+.search { position: relative; margin: 10px 14px 4px; }
+.search input { width: 100%; height: 42px; border: 1px solid var(--line); border-radius: 21px; padding: 0 16px 0 42px; font: inherit; background: var(--wash); color: var(--ink); }
+.search input::placeholder { color: var(--ink-3); }
+.search input:focus { background: #fff; border-color: var(--sky); outline: none; box-shadow: 0 0 0 3px rgba(47,155,224,.18); }
+.search svg { position: absolute; left: 14px; top: 11px; color: var(--ink-3); }
+#sugg { position: absolute; left: 0; right: 0; top: 46px; background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 10px 30px rgba(27,37,64,.16); z-index: 20; overflow: hidden; display: none; }
+#sugg button { display: flex; width: 100%; text-align: left; gap: 10px; align-items: center; border: 0; background: none; padding: 9px 14px; }
+#sugg button:hover, #sugg button:focus-visible { background: var(--wash); }
+
+/* ---------- navigation by mode ---------- */
+.modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 10px 14px 12px; border-bottom: 1px solid var(--line); }
+.modes button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 9px 4px 8px; border: 1px solid transparent; border-radius: 14px; background: none; color: var(--ink-2); font-size: 12.5px; font-weight: 600; }
+.modes button:hover { background: var(--wash); }
+.modes button[aria-selected="true"] { background: var(--ink); color: #fff; }
+.modes svg { width: 22px; height: 22px; }
+.panel { display: none; padding: 14px 18px 28px; } .panel.on { display: block; }
+.panel h2 { font: 650 16px/1.2 var(--display); margin: 0 0 4px; }
+.panel .lead { color: var(--ink-2); margin: 0 0 14px; font-size: 13px; }
+.panel h3 { font: 700 13px/1.2 var(--sans); margin: 20px 0 8px; color: var(--ink); }
+.phop { display: block; margin: 8px 0 2px; font-size: 12.5px; color: var(--ink-2); } .phop b { color: var(--ink); } .phop input { width: 100%; }
+.tiers { margin: 10px 0 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; } .tiers b { width: 100%; font-size: 12.5px; } .tiers a { border: 1px solid var(--line); border-radius: 10px; padding: 5px 10px; text-decoration: none; color: var(--ink); font-weight: 650; font-size: 13px; } .tiers a small { display: block; font-weight: 500; color: var(--ink-3); font-size: 11px; } .tiers a.on { background: var(--violet); color: #fff; border-color: var(--violet); } .tiers a.on small { color: #e8dcf7; } .tiers > small { width: 100%; color: var(--ink-3); font-size: 11.5px; }
+.foot { padding: 10px 18px 14px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 12.5px; color: var(--ink-2); }
+.foot a, .foot button, .foot select { white-space: nowrap; flex: none; } .foot a { color: var(--ink); font-weight: 600; text-underline-offset: 3px; }
+.foot .sp { flex: 1; }
+.pill-btn { border: 1px solid var(--line); background: #fff; border-radius: 16px; padding: 4px 12px; font-weight: 600; font-size: 12.5px; }
+.pill-btn:hover { border-color: var(--ink-3); }
+
+/* layer switches */
+.layer { display: grid; grid-template-columns: 38px 1fr auto; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.layer:last-of-type { border-bottom: 0; }
+.layer .sw { width: 38px; height: 26px; border-radius: 8px; }
+.layer b { display: block; font-weight: 650; } .layer small { color: var(--ink-3); font-size: 12px; }
+.tg { position: relative; width: 40px; height: 24px; flex: none; }
+.tg input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 2; }
+.tg i { position: absolute; inset: 0; border-radius: 12px; background: #c6cdd9; transition: background .15s; }
+.tg i::after { content: ""; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .15s; }
+.tg input:checked + i { background: var(--sky); } .tg input:checked + i::after { transform: translateX(16px); }
+.tg input:focus-visible + i { outline: 2px solid var(--sky); outline-offset: 2px; }
+.range { display: grid; gap: 4px; margin: 8px 0 2px; }
+.range label { display: flex; justify-content: space-between; font-weight: 650; }
+.range label span { font-weight: 500; color: var(--ink-2); }
+input[type=range] { width: 100%; accent-color: var(--violet); }
+
+/* hazard classes */
+.haz { width: 100%; border-collapse: collapse; font-size: 13px; }
+.haz td { padding: 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.haz tr:last-child td { border-bottom: 0; }
+.haz td:first-child { width: 22px; } .haz i { display: block; width: 14px; height: 14px; border-radius: 50%; margin-top: 2px; }
+.haz small { color: var(--ink-3); display: block; }
+
+/* route */
+.stops { position: relative; display: grid; gap: 8px; margin: 4px 0 12px; }
+.stop { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; background: var(--wash); min-height: 46px; }
+.stop.empty { color: var(--ink-3); border-style: dashed; background: #fff; }
+.stop .pin { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; color: #fff; font: 700 12px var(--display); }
+.stop .pin.a { background: var(--sky); } .stop .pin.b { background: var(--violet); }
+.row2 { display: flex; gap: 8px; flex-wrap: wrap; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--wash); border: 1px solid var(--line); border-radius: 12px; padding: 3px; margin: 6px 0 4px; }
+.seg button { border: 0; background: none; border-radius: 9px; padding: 8px 6px; font-weight: 650; color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(27,37,64,.18); }
+.btn { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 8px 12px; font-weight: 650; }
+.btn:hover { border-color: var(--ink-3); } .btn.primary { background: var(--violet); color: #fff; border-color: var(--violet); }
+.btn[disabled] { opacity: .45; cursor: default; }
+.msg { min-height: 20px; font-size: 13px; color: var(--ink-2); margin: 6px 0; }
+.msg.err { color: var(--crimson); font-weight: 600; }
+
+/* provenance badges */
+.chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 10px; padding: 1px 8px 1px 7px; font-size: 11.5px; font-weight: 650; white-space: nowrap; }
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.chip.data { color: #2f6e1c; background: #e6f3df; } .chip.model { color: #1769a3; background: #e1f0fb; } .chip.assumed { color: #a24c08; background: #fdeadb; }
+.why { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.why td { padding: 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.why td:first-child { padding-right: 10px; } .why b { font-weight: 650; display: block; } .why small { color: var(--ink-2); display: block; margin-top: 2px; line-height: 1.35; }
+.why td.v { text-align: right; white-space: nowrap; padding-left: 8px; font-weight: 650; }
+details.fold { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+details.fold summary { font-weight: 700; cursor: pointer; list-style: none; display: flex; justify-content: space-between; }
+details.fold summary::after { content: "+"; color: var(--ink-3); font-size: 18px; line-height: 1; } details.fold[open] summary::after { content: "–"; }
+details.fold summary::-webkit-details-marker { display: none; }
+
+/* ---------- details on the right ---------- */
+#right section { padding: 18px 20px 20px; border-bottom: 1px solid var(--line); }
+#right section:last-child { border-bottom: 0; }
+#right h2 { font: 650 16px/1.2 var(--display); margin: 0 0 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.figs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 14px; margin-bottom: 14px; }
+.fig b { display: block; font: 700 26px/1.05 var(--display); letter-spacing: -.01em; }
+.fig b em { font: 600 13px var(--sans); font-style: normal; color: var(--ink-2); margin-left: 2px; }
+.fig span { color: var(--ink-2); font-size: 12.5px; }
+.fig.big b { font-size: 34px; color: var(--violet); }
+.kv { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font-size: 13px; margin: 6px 0 0; }
+.kv span:nth-child(odd) { color: var(--ink-2); } .kv span:nth-child(even) { text-align: right; font-weight: 600; }
+.note { color: var(--ink-2); font-size: 12.5px; line-height: 1.4; margin: 8px 0 0; }
+.tradeoff { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--wash); font-size: 13px; }
+.tradeoff b { font-weight: 700; }
+svg text { font-family: var(--sans); }
+.chart { width: 100%; height: auto; display: block; touch-action: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 12px; color: var(--ink-2); }
+.legend i { display: inline-block; width: 12px; height: 4px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+.hzchip { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.hzchip i { width: 11px; height: 11px; border-radius: 50%; }
+.empty-state { color: var(--ink-2); font-size: 13px; padding: 2px 0; }
+
+/* ---------- floating elements on the map ---------- */
+.float { position: absolute; z-index: 1000; }
+#viewtog { top: 14px; left: 50%; transform: translateX(-50%); display: flex; background: #fff; border-radius: 22px; padding: 3px; box-shadow: 0 2px 10px rgba(27,37,64,.25); }
+#viewtog button { border: 0; background: none; border-radius: 18px; padding: 7px 18px; font-weight: 650; color: var(--ink-2); }
+#viewtog button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.edge { top: 14px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: #fff; box-shadow: 0 2px 10px rgba(27,37,64,.25); display: grid; place-items: center; }
+#clock { top: 58px; right: 12px; background: rgba(255,255,255,.95); border-radius: 12px; padding: 7px 12px 8px; box-shadow: 0 2px 10px rgba(27,37,64,.25); font-variant-numeric: tabular-nums; min-width: 128px; }
+#clock .r { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 12px; color: var(--ink-2); } #clock b { font: 700 17px/1.25 var(--display); color: var(--ink); }
+#clock .r.m b { color: var(--mars); }
+#toggleLeft { left: 12px; } #toggleRight { right: 12px; }
+.edge:hover { background: var(--wash); }
+#banner { top: 58px; left: 50%; transform: translateX(-50%); background: var(--crimson); color: #fff; padding: 6px 14px; border-radius: 16px; font-weight: 650; font-size: 12.5px; box-shadow: 0 2px 10px rgba(0,0,0,.3); display: none; text-align: center; }
+#hover { display: none; left: 12px; bottom: 12px; background: rgba(255,255,255,.94); border-radius: 10px; padding: 6px 12px; font-size: 12.5px; box-shadow: 0 2px 10px rgba(27,37,64,.22); color: var(--ink); }
+#scale { right: 68px; bottom: 16px; color: #fff; font-size: 12px; font-weight: 650; text-shadow: 0 1px 3px rgba(0,0,0,.6); text-align: right; pointer-events: none; }
+#scale i { display: block; height: 7px; border: 2px solid #fff; border-top: 0; margin-top: 3px; margin-left: auto; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+#exbox { right: 60px; top: 14px; background: #fff; border-radius: 14px; padding: 8px 12px; font-size: 12.5px; box-shadow: 0 2px 10px rgba(27,37,64,.25); display: none; font-weight: 650; }
+.pinmark { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: #fff; font: 700 13px var(--display); border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+.leaflet-tooltip { font-family: var(--sans); font-weight: 600; border-radius: 8px; border: 0; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+
+@media (max-width: 960px) {
+  #app, #app[data-left], #app[data-right] { grid-template-columns: 1fr !important; }
+  aside { position: fixed; top: 0; bottom: 0; width: min(92vw, 400px); transition: transform .22s ease; }
+  #left { left: 0; } #right { right: 0; } .closer { display: grid; } .brand { padding-right: 56px; }
+  #app[data-left="closed"] #left { transform: translateX(-105%); } #app[data-right="closed"] #right { transform: translateX(105%); }
+  #viewtog { top: auto; bottom: 14px; } #hover { display: none; } #banner { top: 58px; max-width: 70vw; }
+  #scale { bottom: 62px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+  .draftnote { position: fixed; z-index: 3000; left: 50%; bottom: 8px; transform: translateX(-50%); background: #fff4d1; color: #1b2540; border: 1px solid #f0bf2b; border-radius: 14px; padding: 3px 12px; font: 600 12px/1.4 'Public Sans', system-ui, sans-serif; text-decoration: none; box-shadow: 0 2px 8px rgba(27,37,64,.2); white-space: nowrap; }
+  select.lang { background: #fff; color: #1b2540; border: 0; border-radius: 10px; padding: 6px 8px; font: 700 13px 'Public Sans', system-ui, sans-serif; cursor: pointer; box-shadow: 0 2px 8px rgba(27,37,64,.25); }
+#tourq { right: 12px; top: 128px; }
+
+#navhud { left: 50%; bottom: 14px; transform: translateX(-50%); width: min(440px, calc(100% - 24px)); background: rgba(255,255,255,.97); border-radius: 18px; box-shadow: 0 6px 24px rgba(27,37,64,.3); padding: 12px 14px; z-index: 1100; }
+#navhud[hidden] { display: none; }
+#navhud .top { display: flex; gap: 12px; align-items: center; }
+#navhud .ic { flex: none; width: 46px; height: 46px; border-radius: 12px; background: var(--leaf); display: grid; place-items: center; } #navhud .ic svg { transition: transform .25s; }
+#navhud .tx { min-width: 0; } #navhud .tx b { display: block; font: 700 16px var(--display); line-height: 1.2; } #navhud .tx span { font-size: 12.5px; color: var(--ink-2); }
+#navhud .st { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; text-align: center; }
+#navhud .st div { background: var(--wash); border-radius: 10px; padding: 6px 4px; } #navhud .st b { display: block; font: 700 15px var(--sans); } #navhud .st span { font-size: 11px; color: var(--ink-3); }
+#navhud .pace { display: block; margin: 0 0 8px; font-size: 12px; color: var(--ink-3); } #navhud .pace b { color: var(--ink); } #navhud .pace input { width: 100%; }
+#navhud .bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; margin-bottom: 10px; } #navhud .bar i { display: block; height: 100%; width: 0; background: var(--violet); }
+#navhud .ctl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+#navhud .ctl button { border: 1px solid var(--line); background: #fff; border-radius: 16px; padding: 5px 11px; font: 600 12px var(--sans); cursor: pointer; }
+#navhud .ctl button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+#navhud .ctl .stop { flex: 1 0 100%; white-space: nowrap; text-align: center; display: block; width: 100%; margin-top: 4px; min-height: 46px; border-radius: 14px; background: var(--crimson); border-color: var(--crimson); color: #fff; font-size: 15px; font-weight: 700; letter-spacing: .01em; }
+#navhud .note { font-size: 11.5px; color: var(--ink-3); margin-top: 8px; }
+.navme svg { overflow: visible; transition: none; }
+@media (max-width: 959px) { #navhud { bottom: 64px; } }
+
+.modes { grid-template-columns: repeat(4, 1fr) !important; gap: 4px !important; padding-left: 10px !important; padding-right: 10px !important; } .modes button span { font-size: 12px; }
+.chk { display: flex; gap: 8px; align-items: center; margin: 8px 0 2px; font-weight: 600; font-size: 13px; } .chk input { accent-color: var(--leaf); width: 16px; height: 16px; }
+.safres { margin-top: 8px; font-size: 13px; color: var(--ink-2); } .safres b { color: var(--ink); } .safres .lg { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 6px 0; font-size: 12px; } .safres .lg i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
+.pill3 { left: 12px; top: 58px; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 7px 13px; font: 650 12.5px var(--sans); cursor: pointer; box-shadow: 0 1px 4px rgba(20,28,50,.2); } .pill3[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.pform { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); display: grid; gap: 8px; } .pform h3 { margin: 0; font: 700 13px var(--sans); }
+.pform input, .pform textarea, .pform select { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font: 500 13.5px var(--sans); background: #fff; color: var(--ink); } .pform textarea { resize: vertical; }
+.plist { display: grid; gap: 8px; margin: 10px 0; } .pitem { display: grid; grid-template-columns: 14px 1fr auto; gap: 4px 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.pitem .dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 4px; } .pitem b { font-weight: 650; } .pitem small { display: block; color: var(--ink-3); font-size: 12px; line-height: 1.35; }
+.pitem .acts { display: flex; gap: 4px; } .pitem button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 3px 8px; font: 600 12px var(--sans); cursor: pointer; }
+.bstat { display: inline-block; padding: 4px 11px; border-radius: 14px; font-weight: 700; font-size: 12.5px; color: #fff; } .bstat.ok { background: var(--leaf); } .bstat.caution { background: #b88700; } .bstat.danger { background: var(--crimson); }
+.blist { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 13px; } .blist li.bad { color: var(--crimson); font-weight: 600; }
+.shelterbox { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-weight: 600; font-size: 13px; } .shelterbox.empty { border-style: dashed; color: var(--ink-3); font-weight: 500; }
+.shelterpin svg { filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+</style>
+</head>
+<body>
+<div id="app" data-left="open" data-right="open"><script>if(innerWidth<960){var a=document.getElementById("app");a.dataset.left="closed";a.dataset.right="closed";}</script>
+  <aside id="left" aria-label="Navigation">
+    <button class="closer" data-close="left" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
+    <div class="brand">
+      <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#b8432a"/><g fill="none" stroke="#fff" stroke-width="1.4" opacity=".92"><path d="M9 21c0-7 6-11 12-10s10 6 9 12-6 9-12 8-9-4-9-10z"/><path d="M14 21c0-4 3-7 7-6s6 4 5 8-4 6-8 5-4-3-4-7z"/><path d="M19 21c0-2 2-3 3-2s1 3-1 3-2-1-2-1z"/></g></svg>
+      <div><h1 id="t-title"></h1><p id="siteinfo"></p></div>
+    </div>
+    <div class="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg>
+      <input id="q" type="search" autocomplete="off" aria-label="Search" aria-controls="sugg">
+      <div id="sugg" role="listbox"></div>
+    </div>
+    <nav class="modes" role="tablist" aria-label="Modes">
+      <button role="tab" id="m-terrain" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19 9 8l4 6 3-4 5 9z"/></svg><span id="t-mterrain"></span></button>
+      <button role="tab" id="m-walk" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8 18h6a3.5 3.5 0 0 0 0-7h-4a3.5 3.5 0 0 1 0-7h5"/></svg><span id="t-mwalk"></span></button>
+      <button role="tab" id="m-safety" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.6 3 8 7 10 4-2 7-5.4 7-10V6z"/><path d="m9 12 2 2 4-4"/></svg><span id="t-msafety"></span></button>
+      <button role="tab" id="m-sol" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg><span id="t-msol"></span></button>
+    </nav>
+    <div class="scroll">
+      <div class="panel on" id="p-terrain">
+        <h2 id="t-hterrain"></h2><p class="lead" id="t-lterrain"></p>
+        <div id="layerbox"></div><div id="tiers"></div>
+        <div class="range"><label for="opacity"><b id="t-opacity"></b><span id="opv">70%</span></label><input id="opacity" type="range" min="0.1" max="1" step="0.05" value="0.7"></div>
+        <h3 id="t-hazclass"></h3><table class="haz" id="hazlegend"></table>
+      </div>
+      <div class="panel" id="p-walk">
+        <h2 id="t-hwalk"></h2><p class="lead" id="t-lwalk"></p>
+        <div class="stops"><div class="stop empty" id="stopA"></div><div class="stop empty" id="stopB"></div></div>
+        <div class="row2"><button class="btn" id="swap"></button><button class="btn" id="clear"></button></div>
+        <div class="msg" id="msg" role="status"></div>
+        <h3 id="t-opt"></h3>
+        <div class="seg" id="objseg"><button id="o-energy" aria-pressed="true"></button><button id="o-time" aria-pressed="false"></button></div>
+        <h3 id="t-walker"></h3>
+        <div class="range"><label for="mass"><b id="t-mass"></b><span id="massv"></span></label><input id="mass" type="range" min="100" max="300" step="5"></div>
+        <div class="range"><label for="power"><b id="t-power"></b><span id="powerv"></span></label><input id="power" type="range" min="200" max="500" step="10"></div>
+        <div class="range"><label for="pace"><b id="t-navpace"></b><span id="pace-v"></span></label><input id="pace" type="range" min="1" max="40" step="0.5"></div>
+        <div class="row2" style="margin-top:8px"><button class="btn" id="resetw"></button><button class="btn" id="dlroute" disabled></button></div>
+        <div class="range" style="margin-top:12px"><label for="lw"><b id="t-lwl"></b><span id="lwv">1×</span></label><input id="lw" type="range" min="0.4" max="3" step="0.1" value="1"></div>
+        <button class="btn primary" id="navgo" disabled style="width:100%;margin-top:8px"></button>
+        <button class="btn" id="printroute" disabled style="width:100%;margin-top:8px"></button>
+        <details class="fold" open><summary id="t-why"></summary><table class="why" id="whytbl"></table></details>
+      </div>
+      <div class="panel" id="p-safety">
+        <h2 id="t-hsafety"></h2><p class="lead" id="t-lsafety"></p>
+        <h3 id="t-shelter"></h3>
+        <div class="shelterbox empty" id="shelterbox"></div>
+        <button class="btn" id="shelterset" style="width:100%;margin-top:8px"></button>
+        <h3 id="t-reach"></h3><p class="note" id="t-reachlead"></p>
+        <div class="range"><label for="sf-eva"><b id="t-eva2"></b><span id="sf-evav"></span></label><input id="sf-eva" type="range" min="2" max="10" step="0.5" value="8"></div>
+        <div class="range"><label for="sf-res"><b id="t-res"></b><span id="sf-resv"></span></label><input id="sf-res" type="range" min="0" max="50" step="5" value="25"></div>
+        <label class="chk"><input type="checkbox" id="vs-reach" checked><span id="t-lreach"></span></label>
+        <button class="btn primary" id="sf-reach" style="width:100%;margin-top:6px"></button>
+        <div class="safres" id="reachres" role="status"></div>
+        <h3 id="t-los"></h3><p class="note" id="t-loslead"></p>
+        <div class="range"><label for="sf-ant"><b id="t-ant"></b><span id="sf-antv"></span></label><input id="sf-ant" type="range" min="1" max="15" step="0.5" value="3"></div>
+        <div class="range"><label for="sf-rx"><b id="t-rx"></b><span id="sf-rxv"></span></label><input id="sf-rx" type="range" min="1" max="3" step="0.1" value="1.8"></div>
+        <label class="chk"><input type="checkbox" id="vs-los"><span id="t-llos"></span></label>
+        <button class="btn primary" id="sf-los" style="width:100%;margin-top:6px"></button>
+        <div class="safres" id="losres" role="status"></div>
+        <h3 id="t-shadow"></h3><p class="note" id="t-shadowlead"></p>
+        <div class="range"><label for="sf-hour"><b id="t-hourl"></b><span id="sf-hourv"></span></label><input id="sf-hour" type="range" min="0" max="24" step="0.25" value="14"></div>
+        <label class="chk"><input type="checkbox" id="vs-shadow"><span id="t-lshadow"></span></label>
+        <div class="safres" id="shadowres" role="status"></div>
+      </div>
+      <div class="panel" id="p-sol">
+        <h2 id="t-hsol"></h2><p class="lead" id="t-lsol"></p>
+        <div class="range"><label for="ls"><b id="t-season"></b><span id="lsv"></span></label><input id="ls" type="range" min="0" max="11" step="1" value="0"></div>
+        <p class="note" id="t-evanote"></p>
+      </div>
+    </div>
+    <div class="foot"><a href="sources.html" id="t-sources"></a><a href="globe.html" id="t-globe" style="font-weight:500"></a><a href="overview.html" id="t-overview" style="font-weight:500"></a><span class="sp"></span><button class="pill-btn" id="tourbtn"></button><span id="langslot"></span></div>
+  </aside>
+
+  <main id="main">
+    <div id="map" aria-label="Map"></div><div id="three"></div>
+    <button class="float edge" id="toggleLeft" aria-label="Toggle navigation"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <button class="float edge" id="toggleRight" aria-label="Toggle details"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v12H4zM14 6v12"/></svg></button>
+    <div class="float" id="viewtog"><button id="v2d" aria-pressed="true">2D</button><button id="v3d" aria-pressed="false">3D</button></div>
+    <div class="float" id="clock"><div class="r"><span id="ck-e"></span><b id="ck-et">--:--</b></div><div class="r m"><span id="ck-m"></span><b id="ck-mt">--:--</b></div></div>
+    <button class="float tourbtn" id="tourq" aria-label="Tutorial">?</button>
+    <div class="float" id="navhud" hidden></div>
+    <button class="float pill3" id="gbtn" style="display:none"></button>
+    <div class="float" id="banner"></div>
+    <div class="float" id="hover"></div>
+    <div class="float" id="scale"><span id="scalelab"></span><i id="scalebar"></i></div>
+  </main>
+
+  <aside id="right" aria-label="Details"><button class="closer" data-close="right" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 5l14 14M19 5 5 19"/></svg></button><div class="scroll">
+    <section id="s-place"></section>
+    <section id="s-route"></section>
+    <section id="s-budget"></section>
+    <section id="s-eva"></section>
+    <section id="s-places"></section>
+    <section id="s-data"></section>
+  </div></aside>
+</div>
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="lang/registry.js"></script>
+<script src="common.js"></script>
+<script src="tour.js"></script>
+<script>loadLanguage();</script>
+<script type="module">
+import { marsTime, hhmm } from './marsclock.mjs';
+import { findRouteEnergy, routeStats, stepCost, walkingCost, optimalSpeedKmh, costField } from './route.mjs';
+import { reachField, viewshed, sunPosition, shadowMask, timeBudget, SOL_H } from './survival.mjs';
+
+const $ = id => document.getElementById(id);
+const COL = { leaf: '#4a9a2f', sky: '#2f9be0', mars: '#b8432a', sun: '#f0bf2b', crimson: '#a1162f', ember: '#ec7a2c', violet: '#6a3fa8', ink: '#1b2540' };
+const HAZ_COL = [COL.leaf, COL.sun, COL.ember, COL.crimson];
+const MARS_R = 3396190;
+
+/* ============================== texts ============================== */
+const T = makeT('index');
+document.documentElement.lang = LANG;
+const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
+['navpace', 'title', 'mterrain', 'mwalk', 'msafety', 'msol', 'hsafety', 'lsafety', 'shelter', 'reach', 'reachlead', 'eva2', 'res', 'lreach', 'los', 'loslead', 'ant', 'rx', 'llos', 'shadow', 'shadowlead', 'hourl', 'lshadow', 'hterrain', 'lterrain', 'opacity', 'hazclass', 'hwalk', 'lwalk', 'opt', 'walker', 'mass', 'power', 'why', 'hsol', 'lsol', 'season', 'evanote', 'sources', 'globe', 'overview'].forEach(k => set('t-' + k, T(k)));
+$('t-hazclass').textContent = T('hazclass');
+set('swap', T('swap')); set('clear', T('clear')); set('dlroute', T('dl')); set('resetw', T('reset')); set('o-energy', T('oenergy')); set('o-time', T('otime'));
+$('q').placeholder = T('search');
+set('shelterset', T('shelterset')); set('sf-reach', T('computeb')); set('sf-los', T('computeb')); set('printroute', T('printbtn')); set('gbtn', T('groundbtn'));
+$('langslot').appendChild(Object.assign(langToggle(), { className: 'pill-btn' }));
+
+/* ============================== data ============================== */
+const SITE = (() => { const q = new URLSearchParams(location.search).get('site'); return q && /^[a-z0-9_-]+$/i.test(q) ? `data/sites/${q}/` : 'data/site/'; })();   // ?site=<id> opens a detail window listed in data/sites.json
+const f32 = async n => { const r = await fetch(`${SITE}${n}`); if (!r.ok) throw new Error(n); return new Float32Array(await r.arrayBuffer()); };
+const img = src => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = src; });
+let meta, G, prov = null; const layerImgs = {};
+try {
+  meta = await (await fetch(SITE + 'site.json')).json();
+  let dem, slope, rough, tmult;
+  if (meta.pack) {   // packed fixed-point files (see export_site): decode once to the float32 arrays every tool uses
+    const u = async (n, T) => new T(await (await fetch(SITE + n)).arrayBuffer()), K = meta.pack;
+    const [d16, s8, r16] = await Promise.all([u('dem16.bin', Uint16Array), u('slope8.bin', Uint8Array), u('rough16.bin', Uint16Array)]);
+    const n = d16.length, ref = meta.walker.rough_ref_m, rmax = meta.walker.rough_max_m;
+    dem = new Float32Array(n); slope = new Float32Array(n); rough = new Float32Array(n); tmult = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      dem[i] = K.zmin + d16[i] * K.zscale; slope[i] = s8[i] * K.slope_step_deg; const r = r16[i] * K.rough_step_m; rough[i] = r;
+      tmult[i] = r > rmax ? Infinity : 1 + (r / ref) * (r / ref);
+    }
+  } else [dem, slope, rough, tmult] = await Promise.all(['dem.bin', 'slope.bin', 'rough.bin', 'tmult.bin'].map(f32));   // sites built before packing
+  G = { dem, slope, rough, tmult, w: meta.width, h: meta.height, px: meta.px_m };
+  await Promise.all(['hillshade', 'hazard'].map(async n => { layerImgs[n] = await img(`${SITE}${n}.png`); }));   // slope and roughness pictures are fetched only when that layer is switched on
+  try { prov = await (await fetch(SITE + 'provenance.json')).json(); } catch (e) {}
+} catch (e) {
+  document.querySelector('#left .scroll').innerHTML = `<div class="panel on"><h2>${T('title')}</h2><p class="lead">${T('nodata')}</p><pre>${T('nodatacmd')}</pre></div>`;
+  throw e;
+}
+const W = G.w * G.px, H = G.h * G.px, P = meta.params;
+const WK = meta.walker || { mass_kg: 170, power_w: 326, g: 3.71, level_scale: 0.75 };
+const walker = { massKg: WK.mass_kg, powerW: Math.round(WK.power_w), g: WK.g, levelScale: WK.level_scale };
+const defaults = { massKg: walker.massKg, powerW: walker.powerW };
+set('siteinfo', meta.name);
+if (meta.synthetic) { $('banner').style.display = 'block'; $('banner').textContent = T('synth'); }
+
+/* ============================== utilities ============================== */
+const hzClass = (s, r) => { const l = (v, a, b, c) => (v > a) + (v > b) + (v > c);
+  return Math.max(l(s, P.slope_caution_deg, P.slope_hazard_deg, P.slope_max_deg), l(r, P.rough_caution_m, P.rough_hazard_m, P.rough_max_m)); };
+const fmtH = h => { const m = Math.round(h * 60); return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}` : `${m} min`; };
+const fmtE = j => { const wh = j / 3600; return wh >= 1000 ? [(wh / 1000).toFixed(2), 'kWh'] : [Math.round(wh).toLocaleString(), 'Wh']; };
+const fmtD = m => m >= 1000 ? [(m / 1000).toFixed(2), 'km'] : [Math.round(m), 'm'];
+const latlon = (r, c) => { if (meta.center_lat == null) return null; const n = (G.h / 2 - r) * G.px, e = (c - G.w / 2) * G.px;
+  return [meta.center_lat + n / MARS_R * 180 / Math.PI, meta.center_lon + e / (MARS_R * Math.cos(meta.center_lat * Math.PI / 180)) * 180 / Math.PI]; };
+const ll = (r, c) => [H - (r + .5) * G.px, (c + .5) * G.px];
+const cellAt = p => { const r = Math.floor((H - p.lat) / G.px), c = Math.floor(p.lng / G.px); return (r < 0 || c < 0 || r >= G.h || c >= G.w) ? null : [r, c]; };
+const chip = k => `<span class="chip ${k}">${T({ data: 'chipdata', model: 'chipmodel', assumed: 'chipassumed' }[k])}</span>`;
+
+/* ============================== 2D map ============================== */
+const map = L.map('map', { crs: L.CRS.Simple, minZoom: -6, maxZoom: 3, zoomSnap: 0.25, attributionControl: false, zoomControl: false });
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+const bounds = [[0, 0], [H, W]];
+map.fitBounds(bounds, { paddingTopLeft: [0, 0] }); map.setMaxBounds([[-H * .3, -W * .3], [H * 1.3, W * 1.3]]);
+L.imageOverlay(SITE + 'hillshade.png', bounds, { className: 'base-img', zIndex: 1 }).addTo(map);
+let photo = null; try { const r = await fetch(SITE + 'photo.json'); if (r.ok) photo = await r.json(); } catch (e) { /* no photo for this window */ }
+const photoOvl = photo ? L.imageOverlay(SITE + photo.file, bounds, { zIndex: 2 }) : null;
+const vis = { photo: false, slope: false, roughness: false, hazard: true, flats: true };
+let lineK = 1; try { lineK = Math.min(3, Math.max(.4, +localStorage.getItem('msm.lineK') || 1)); } catch (e) { /* storage unavailable: default */ }
+const SAF = {}, safVis = { reach: true, los: false, shadow: false }, safOvl = {};
+const ovl = {}, op = () => parseFloat($('opacity').value);
+for (const n of ['slope', 'roughness', 'hazard']) ovl[n] = L.imageOverlay(`${SITE}${n}.png`, bounds, { opacity: op(), zIndex: 3 });
+const flatLayer = L.layerGroup(), userLayer = L.layerGroup().addTo(map), cursorLayer = L.layerGroup().addTo(map);
+(meta.flat_sites || []).forEach(s => L.circle(ll(s.row, s.col), { radius: s.radius_m, color: COL.sky, weight: 2.5, fillColor: COL.sky, fillOpacity: .16 })
+  .bindTooltip(T('flatn', s.rank, s.mean_slope_deg)).addTo(flatLayer));
+function syncLayers() {
+  for (const n of ['slope', 'roughness']) if (vis[n] && !layerImgs[n]) img(`${SITE}${n}.png`).then(i => { layerImgs[n] = i; tex3dDirty = true; }).catch(() => {});
+  if (photoOvl) { vis.photo ? photoOvl.addTo(map) : map.removeLayer(photoOvl); photoOvl.setOpacity(($('photoop') ? $('photoop').value : 100) / 100); }
+  for (const n of ['slope', 'roughness', 'hazard']) { vis[n] ? ovl[n].addTo(map) : map.removeLayer(ovl[n]); ovl[n].setOpacity(op()); }
+  vis.flats ? flatLayer.addTo(map) : map.removeLayer(flatLayer);
+  syncSaf(); tex3dDirty = true; set('opv', Math.round(op() * 100) + '%');
+}
+
+/* scale bar (CRS.Simple: 1 unit = 1 m) */
+function updScale() {
+  const mpp = 1 / Math.pow(2, map.getZoom()), target = 110 * mpp, pow = Math.pow(10, Math.floor(Math.log10(target)));
+  const nice = [1, 2, 5, 10].map(k => k * pow).filter(v => v <= target * 1.2).pop() || pow;
+  $('scalebar').style.width = (nice / mpp) + 'px'; set('scalelab', nice >= 1000 ? (nice / 1000) + ' km' : nice + ' m');
+}
+map.on('zoom move', updScale); updScale();
+map.on('mousemove', e => { const rc = cellAt(e.latlng); if (!rc) return; const i = rc[0] * G.w + rc[1];
+  $('hover').style.display = 'block'; set('hover', T('hover', Math.round(e.latlng.lng), Math.round(H - e.latlng.lat), G.dem[i].toFixed(0), G.slope[i].toFixed(1))); });
+
+/* ============================== layers (left panel) ============================== */
+const swatch = { slope: `linear-gradient(90deg,${COL.leaf},${COL.sun},${COL.ember},${COL.crimson})`, roughness: `linear-gradient(90deg,#e9dccf,#b98a62,#7a4a2a)`,
+  hazard: `linear-gradient(90deg,${HAZ_COL.join(',')})`, flats: COL.sky, photo: 'linear-gradient(90deg,#3a3a3a,#bdbdbd)' };
+const tgl = (id, on) => `<span class="tg"><input type="checkbox" data-l="${id}" ${on ? 'checked' : ''} aria-label="${T('layers')[id][0]}"><i></i></span>`;
+$('layerbox').innerHTML = Object.keys(T('layers')).filter(id => id !== 'photo' || photo).map(id => { const [a, b] = T('layers')[id];
+  return `<div class="layer"><span class="sw" style="background:${swatch[id]}"></span><div><b>${a}</b><small>${b}</small></div>${tgl(id, vis[id])}</div>`; }).join('');
+if (photo) { $('layerbox').insertAdjacentHTML('beforeend', `<label class="phop"><span>${T('photoop')} <b id="phop-v">100%</b></span><input id="photoop" type="range" min="10" max="100" value="100"></label>`);
+  $('photoop').oninput = e => { photoOvl.setOpacity(e.target.value / 100); set('phop-v', e.target.value + '%'); if (!vis.photo) { vis.photo = true; document.querySelector('[data-l=photo]').checked = true; syncLayers(); photoOvl.setOpacity(e.target.value / 100); } }; }
+$('layerbox').addEventListener('change', e => { const l = e.target.dataset.l; if (l) { vis[l] = e.target.checked; syncLayers(); } });
+$('opacity').oninput = syncLayers;
+/* detail levels: other windows of data/sites.json that contain this window's centre (e.g. 4 m whole window, 1 m native sub-window) */
+try {
+  const all = await (await fetch('data/sites.json')).json(), R = 3396190, k = Math.PI / 180;
+  const here = all.filter(q => Math.abs((meta.center_lon - q.center_lon) * k * R * Math.cos(q.center_lat * k)) <= q.width_m / 2 && Math.abs((meta.center_lat - q.center_lat) * k * R) <= q.height_m / 2).sort((a, b) => b.px_m - a.px_m);
+  if (here.length > 1) $('tiers').innerHTML = `<div class="tiers"><b>${T('tiers')}</b>` + here.map(q => `<a href="${q.href}" class="${q.px_m === meta.px_m || (q.href === 'index.html' ? SITE === 'data/site/' : SITE.endsWith('/' + q.id + '/')) ? 'on' : ''}">${+q.px_m.toFixed(2)} m<small>${(q.width_m / 1000).toFixed(1)} km</small></a>`).join('') + `<small>${T('tiernote')}</small></div>`;
+} catch (e) { /* sites.json not built */ }
+const pr = (v, d = 2) => +v.toFixed(d);
+$('hazlegend').innerHTML = [0, 1, 2, 3].map(i => {
+  const [a, b] = [[P.slope_caution_deg, P.rough_caution_m], [P.slope_hazard_deg, P.rough_hazard_m], [P.slope_max_deg, P.rough_max_m]][Math.min(i, 2)];
+  const rule = i === 0 ? T('hzrule', pr(P.slope_caution_deg, 0), pr(P.rough_caution_m)) : i === 1 ? T('hzrule', pr(P.slope_hazard_deg, 0), pr(P.rough_hazard_m)) : i === 2 ? T('hzrule', pr(P.slope_max_deg, 0), pr(P.rough_max_m)) : T('hzrule2', pr(P.slope_max_deg, 0), pr(P.rough_max_m));
+  return `<tr><td><i style="background:${HAZ_COL[i]}"></i></td><td><b>${T('hl')[i]}</b><small>${rule}</small></td><td>${chip('assumed')}</td></tr>`; }).join('');
+
+/* ============================== where each number comes from ============================== */
+const WR = T('whyrows'), rr = pr(WK.rough_ref_m ?? 0.25);
+const WHY = [
+  [G.px.toFixed(1) + ' m/px', 'data'], ['', 'data'], [T('unitjkg'), 'model'], ['× 0.75', 'model'], ['3.4 km/h', 'model'], [Math.round(defaults.powerW) + ' W', 'data'],
+  [defaults.massKg + ' kg', 'assumed'], ['45% / 24°', 'model'], [T('unithyp'), 'assumed'], ['', 'assumed'], ['', 'data'], ['', 'model'], ['', 'assumed']
+].map(([v, k], i) => [WR[i][0], WR[i][1].replaceAll('{r}', rr), v, k]);
+$('whytbl').innerHTML = WHY.map(([a, b, v, k]) => `<tr><td><b>${a}</b><small>${b}</small></td><td class="v">${v}<br>${chip(k)}</td></tr>`).join('');
+
+/* ============================== walker: sliders ============================== */
+const syncWalkerUI = () => { $('mass').value = walker.massKg; $('power').value = walker.powerW; set('massv', walker.massKg + ' kg'); set('powerv', walker.powerW + ' W'); };
+syncWalkerUI();
+$('mass').oninput = e => { walker.massKg = +e.target.value; applyPace(); syncWalkerUI(); scheduleRoute(); };
+$('power').oninput = e => { walker.powerW = +e.target.value; applyPace(); syncWalkerUI(); scheduleRoute(); };
+function setPace(v) {
+  const old = walker.timeScale; nav.pace = v; try { localStorage.setItem('msm.pace', v); } catch (x) { /* private mode */ } applyPace();
+  const k = old / walker.timeScale;                                   // a walk in progress keeps its place: only its clock is rescaled
+  if (nav.on && nav.ct) { for (let i = 0; i < nav.ct.length; i++) nav.ct[i] *= k; nav.tm *= k; nav.t0 *= k; nav.paceChange = true; }
+  set('pace-v', v.toFixed(1) + ' km/h'); if ($('pc')) { $('pc').value = v; set('pc-v', v.toFixed(1) + ' km/h'); } if ($('pace')) $('pace').value = v;
+  scheduleRoute(); if (nav.on) navHudUpdate();
+}
+$('pace').oninput = e => setPace(+e.target.value);
+$('resetw').onclick = () => { Object.assign(walker, defaults); syncWalkerUI(); scheduleRoute(); };
+let objective = 'energy';
+for (const [id, o] of [['o-energy', 'energy'], ['o-time', 'time']]) $(id).onclick = () => { objective = o; $('o-energy').setAttribute('aria-pressed', o === 'energy'); $('o-time').setAttribute('aria-pressed', o === 'time'); scheduleRoute(); };
+
+/* ============================== modes ============================== */
+let mode = 'terrain';
+const setMode = m => { mode = m; for (const k of ['terrain', 'walk', 'safety', 'sol']) { $('m-' + k).setAttribute('aria-selected', k === m); $('p-' + k).classList.toggle('on', k === m); }
+  map.getContainer().style.cursor = m === 'walk' ? 'crosshair' : ''; };
+for (const k of ['terrain', 'walk', 'safety', 'sol']) $('m-' + k).onclick = () => setMode(k);
+$('toggleLeft').onclick = () => { const a = $('app'); a.dataset.left = a.dataset.left === 'open' ? 'closed' : 'open'; setTimeout(() => { map.invalidateSize(); size3d(); }, 260); };
+$('toggleRight').onclick = () => { const a = $('app'); a.dataset.right = a.dataset.right === 'open' ? 'closed' : 'open'; setTimeout(() => { map.invalidateSize(); size3d(); }, 260); };
+document.querySelectorAll('.closer').forEach(b => b.onclick = () => { $('app').dataset[b.dataset.close] = 'closed'; });
+if (innerWidth < 960) { $('app').dataset.left = 'closed'; $('app').dataset.right = 'closed'; setTimeout(() => map.invalidateSize(), 50); }
+
+/* ============================== details: place ============================== */
+let placeRC = null;
+function renderPlace() {
+  const s = $('s-place');
+  if (!placeRC) { s.innerHTML = `<h2>${T('place')}</h2><p class="empty-state">${T('placehelp')}</p>`; return; }
+  const [r, c] = placeRC, saved = places.find(p => p.r === r && p.c === c), i = r * G.w + c, sl = G.slope[i], rg = G.rough[i], tm = G.tmult[i], cl = hzClass(sl, rg), ll_ = latlon(r, c);
+  const grade = Math.tan(sl * Math.PI / 180), lenFlat = 100, len = lenFlat * Math.hypot(1, grade);
+  const wh = (g) => { const [e] = stepCost(g, len, Number.isFinite(tm) ? tm : 1, walker); return Number.isFinite(e) ? Math.round(e / 3600) + ' Wh' : T('cantwalk'); };
+  s.innerHTML = `<h2>${T('place')}<span class="hzchip"><i style="background:${HAZ_COL[cl]}"></i>${T('hl')[cl]}</span></h2>
+    <div class="figs"><div class="fig"><b class="num">${G.dem[i].toFixed(0)}<em>m</em></b><span>${T('elev')}</span></div>
+      <div class="fig"><b class="num">${sl.toFixed(1)}<em>°</em></b><span>${T('slopel')}</span></div>
+      <div class="fig"><b class="num">${rg.toFixed(2)}<em>m</em></b><span>${T('roughl')}</span></div></div>
+    <div class="kv"><span>${T('pos')}</span><span class="num">${ll_ ? ll_[0].toFixed(4) + '°, ' + ll_[1].toFixed(4) + '°' : `${Math.round(c * G.px)} m, ${Math.round(r * G.px)} m`}</span>
+      <span>${T('terr')}</span><span class="num">${Number.isFinite(tm) ? '× ' + tm.toFixed(2) : '—'}</span>
+      <span>${T('up100')}</span><span class="num">${Number.isFinite(tm) ? wh(grade) : '—'}</span>
+      <span>${T('down100')}</span><span class="num">${Number.isFinite(tm) ? wh(-grade) : '—'}</span></div>
+    <div class="pform"><h3>${saved ? T('updatebtn') : T('savebtn')}</h3>
+      <input id="pf-name" maxlength="60" placeholder="${T('namel')}" value="${esc(saved ? saved.name : '')}" aria-label="${T('namel')}">
+      <textarea id="pf-desc" rows="2" maxlength="400" placeholder="${T('descl')}" aria-label="${T('descl')}">${esc(saved ? saved.desc : '')}</textarea>
+      <select id="pf-cat" aria-label="${T('catl')}">${CATS.map(([k], i) => `<option value="${k}"${saved && saved.cat === k ? ' selected' : ''}>${T('cats')[i]}</option>`).join('')}</select>
+      <div class="row2"><button class="btn primary" id="pf-save">${saved ? T('updatebtn') : T('savebtn')}</button>${saved ? `<button class="btn" id="pf-del">${T('del')}</button>` : '<span></span>'}</div>
+      <div class="msg" id="pf-msg" role="status"></div></div>`;
+  $('pf-save').onclick = () => savePlace(saved); if (saved) $('pf-del').onclick = () => { deletePlace(saved.id); };
+}
+function setPlace(rc) { placeRC = rc; renderPlace(); draw3dRoute(); cursorLayer.clearLayers(); if (rc) L.circleMarker(ll(...rc), { radius: 8, color: '#fff', weight: 3, fillColor: COL.ink, fillOpacity: 1 }).addTo(cursorLayer); }
+
+/* ============================== route ============================== */
+let start = null, goal = null, route = null, alt = null, busy = 0, timer = 0;
+const pin = (txt, col) => L.marker([0, 0], { icon: L.divIcon({ className: '', html: `<div class="pinmark" style="background:${col}">${txt}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] }) });
+function stopHtml(rc, k) { const lab = k === 'a' ? 'A' : 'B';
+  if (!rc) return `<span class="pin ${k}">${lab}</span><span>${k === 'a' ? T('from') : T('to')}</span>`;
+  const q = latlon(...rc); return `<span class="pin ${k}">${lab}</span><span class="num">${q ? q[0].toFixed(4) + '°, ' + q[1].toFixed(4) + '°' : Math.round(rc[1] * G.px) + ' m, ' + Math.round(rc[0] * G.px) + ' m'}</span>`; }
+function drawUser() {
+  userLayer.clearLayers();
+  if (route && !nav.on) { L.polyline(route.path.map(p => ll(...p)), { color: '#fff', weight: 9 * lineK, opacity: .95, lineCap: 'round', lineJoin: 'round' }).addTo(userLayer);
+    L.polyline(route.path.map(p => ll(...p)), { color: COL.violet, weight: 5 * lineK, lineCap: 'round', lineJoin: 'round' }).addTo(userLayer); }
+  if (start) pin('A', COL.sky).setLatLng(ll(...start)).addTo(userLayer);
+  if (goal) pin('B', COL.violet).setLatLng(ll(...goal)).addTo(userLayer);
+  $('stopA').className = 'stop' + (start ? '' : ' empty'); $('stopA').innerHTML = stopHtml(start, 'a');
+  $('stopB').className = 'stop' + (goal ? '' : ' empty'); $('stopB').innerHTML = stopHtml(goal, 'b');
+  $('dlroute').disabled = !route; $('navgo').disabled = !route; $('printroute').disabled = !route; renderRoute(); draw3dRoute();
+}
+/* heavy searches run in a Web Worker (route.worker.js); if workers are unavailable they run on the main thread as before */
+let rw = null, rwId = 0; const rwPending = new Map();
+function rworker() {
+  if (rw !== null) return rw;
+  try {
+    rw = new Worker('route.worker.js', { type: 'module' });
+    rw.postMessage({ op: 'init', dem: G.dem, tmult: G.tmult, w: G.w, h: G.h, px: G.px });
+    rw.onmessage = e => { const p = rwPending.get(e.data.id); if (p) { rwPending.delete(e.data.id); p(e.data); } };
+    rw.onerror = () => { rw = false; for (const p of rwPending.values()) p(null); rwPending.clear(); };
+  } catch (e) { rw = false; }
+  return rw;
+}
+const rcall = (op, args) => new Promise(res => { const w = rworker(); if (!w) return res(null); const id = ++rwId; rwPending.set(id, res); w.postMessage({ op, id, ...args }); });
+const wcopy = () => ({ massKg: walker.massKg, powerW: walker.powerW, g: walker.g, levelScale: walker.levelScale, timeScale: walker.timeScale });
+let routing = false, routeAgain = 0;
+function scheduleRoute() { if (!(start && goal)) return; clearTimeout(timer); const my = ++busy; $('msg').className = 'msg'; $('msg').textContent = T('finding');
+  timer = setTimeout(() => { compute(my); }, 30); }
+async function compute(my) {
+  if (routing) { routeAgain = my; return; }
+  routing = true;
+  try {
+    const g = { dem: G.dem, tmult: G.tmult, w: G.w, h: G.h, px: G.px, walker }, other = objective === 'energy' ? 'time' : 'energy';
+    const r1 = await rcall('route', { objective, start, goal, walker: wcopy() });
+    const a = r1 && !r1.error ? r1.a : findRouteEnergy({ ...g, objective }, start, goal);
+    if (my !== busy) return;
+    if (!a) { route = alt = null; if (nav.on) stopNav(); $('msg').className = 'msg err'; $('msg').textContent = T('noroute'); drawUser(); return; }
+    const st = routeStats({ dem: G.dem, cost: G.tmult, w: G.w, px: G.px, speedKmh: 1 }, a.path);
+    route = { ...st, ...a }; alt = null; $('msg').textContent = '';
+    if (nav.on && !nav.rerouting && !nav.paceChange) stopNav();    // walker settings changed mid-walk: end the walk, keep the plan
+    nav.paceChange = false; drawUser(); if (nav.rerouting) { nav.rerouting = false; beginNav(true); }
+    const r2 = await rcall('route', { objective: other, start, goal, walker: wcopy() });       // the alternative is computed after the main route is shown
+    if (my !== busy) return;
+    alt = r2 && !r2.error ? r2.a : findRouteEnergy({ ...g, objective: other }, start, goal); drawUser();
+  } finally { routing = false; if (routeAgain) { const m = routeAgain; routeAgain = 0; if (m === busy) compute(m); } }
+}
+function pickCell(rc) {                  // shared by the 2D map and the 3D view: same rules everywhere
+  setPlace(rc);
+  if (nav.on) { if (nav.fix) fixPosition(rc); return; }          // while walking, a click inspects, or corrects the position
+  if (mode !== 'walk') return;
+  if (!Number.isFinite(G.tmult[rc[0] * G.w + rc[1]])) { $('msg').className = 'msg err'; $('msg').textContent = T('blocked'); return; }
+  $('msg').className = 'msg'; $('msg').textContent = '';
+  if (!start || (start && goal)) { start = rc; goal = null; route = alt = null; drawUser(); }
+  else { goal = rc; drawUser(); scheduleRoute(); }
+}
+map.on('click', e => { const rc = cellAt(e.latlng); if (rc) pickCell(rc); });
+$('clear').onclick = () => { stopNav(); start = goal = route = alt = null; busy++; $('msg').textContent = ''; drawUser(); };
+$('swap').onclick = () => { stopNav(); [start, goal] = [goal, start]; drawUser(); scheduleRoute(); };
+$('dlroute').onclick = () => { if (!route) return;
+  const rows = ['idx,x_m,y_m,z_m'].concat(route.path.map((p, i) => `${i},${(p[1] * G.px).toFixed(1)},${(p[0] * G.px).toFixed(1)},${G.dem[p[0] * G.w + p[1]].toFixed(2)}`));
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([rows.join('\n')], { type: 'text/csv' })); a.download = 'route.csv'; a.click(); };
+
+
+/* ============================== navigation: a simulated walker on the planned route ==============================
+   Mars has no GPS. The walker advances along the route at the model's own pace (slope by slope), so the ETA matches the plan.
+   setNavPosition() is the single place where a position enters: a real source (dead reckoning, visual localisation)
+   could feed it later; today the position comes from the simulation, or from the user ("Correct my position"). */
+/* Walking speed: the user's pace is the speed on level ground; slopes slow the walker in the same proportion as the model says.
+   It enters the model as walker.timeScale, so route time, reach, time budget, arrival time and the walker all use the same clock. Energy does not change. */
+const vFlat = () => 1 / stepCost(0, 1, 1, { ...walker, timeScale: 1 })[1] * 3.6;      // model pace on level ground for the current mass and power, km/h
+const applyPace = () => { walker.timeScale = nav.pace / vFlat(); };
+const nav = { paceChange: false, pace: (() => { try { const v = +localStorage.getItem('msm.pace'); return v >= 1 && v <= 40 ? v : 4; } catch (e) { return 4; } })(), on: false, playing: false, mult: 60, follow: true, fix: false, rerouting: false, tm: 0, last: 0, hudT: 0, raf: 0, e0: 0, d0: 0, t0: 0, turns: [], frac: 0, hdg: 0 };
+applyPace(); set('pace-v', nav.pace.toFixed(1) + ' km/h'); $('pace').value = nav.pace;
+const NAVLAYER = L.layerGroup().addTo(map); let navDone, navHalo, navLine, navMe, navCone, navMe3 = null;
+function simplify(pts, tol) {
+  const keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1; const st = [[0, pts.length - 1]];
+  while (st.length) { const [a, b] = st.pop(); let md = 0, mi = -1; const [ax, ay] = pts[a], [bx, by] = pts[b], Ln = Math.hypot(bx - ax, by - ay) || 1e-9;
+    for (let i = a + 1; i < b; i++) { const d = Math.abs((bx - ax) * (ay - pts[i][1]) - (ax - pts[i][0]) * (by - ay)) / Ln; if (d > md) { md = d; mi = i; } }
+    if (md > tol && mi > 0) { keep[mi] = 1; st.push([a, mi], [mi, b]); } }
+  return [...keep.keys()].filter(i => keep[i]);
+}
+function prepNav() {
+  const p = route.path, n = p.length, cd = new Float64Array(n), ct = new Float64Array(n), ce = new Float64Array(n);
+  for (let i = 1; i < n; i++) { const a = p[i - 1][0] * G.w + p[i - 1][1], b = p[i][0] * G.w + p[i][1];
+    const flat = Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]) * G.px, dz = G.dem[b] - G.dem[a], len = Math.hypot(flat, dz);
+    const [e, t] = stepCost(dz / flat, len, .5 * (G.tmult[a] + G.tmult[b]), walker); cd[i] = cd[i - 1] + len; ct[i] = ct[i - 1] + t; ce[i] = ce[i - 1] + e; }
+  Object.assign(nav, { cd, ct, ce, n });
+  const xy = p.map(q => [q[1] * G.px, -q[0] * G.px]), ks = simplify(xy, 2.5 * G.px), turns = [];
+  for (let j = 1; j < ks.length - 1; j++) { const a = xy[ks[j - 1]], b = xy[ks[j]], c = xy[ks[j + 1]], v1 = [b[0] - a[0], b[1] - a[1]], v2 = [c[0] - b[0], c[1] - b[1]];
+    const ang = Math.atan2(v1[0] * v2[1] - v1[1] * v2[0], v1[0] * v2[0] + v1[1] * v2[1]) * 180 / Math.PI;      // + = left (counter-clockwise, north up)
+    if (Math.abs(ang) >= 25) turns.push({ d: cd[ks[j]], ang }); }
+  nav.turns = turns;
+}
+const bisect = (arr, v) => { let lo = 0, hi = arr.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (arr[m] <= v) lo = m; else hi = m - 1; } return lo; };
+function navState() {                                    // everything derived from the model time nav.tm
+  const { ct, cd, ce, n } = nav, p = route.path, tm = Math.min(nav.tm, ct[n - 1]), k = Math.min(n - 2, bisect(ct, tm));
+  const f = ct[k + 1] > ct[k] ? (tm - ct[k]) / (ct[k + 1] - ct[k]) : 0;
+  const r = p[k][0] + (p[k + 1][0] - p[k][0]) * f, c = p[k][1] + (p[k + 1][1] - p[k][1]) * f;
+  const s = cd[k] + (cd[k + 1] - cd[k]) * f, E = ce[k] + (ce[k + 1] - ce[k]) * f;
+  const kk = Math.min(n - 1, bisect(cd, s + Math.max(30, 5 * G.px)) + 1), tr = p[kk][0], tc = p[kk][1];
+  if (Math.hypot(tr - r, tc - c) * G.px > 1) nav.hdg = (Math.atan2((tc - c), -(tr - r)) * 180 / Math.PI + 360) % 360;
+  return { k, r, c, s, E, tm, done: tm >= ct[n - 1] - 1e-6 };
+}
+const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+function navIcon() { return `<div class="navme"><svg width="56" height="56" viewBox="-28 -28 56 56"><path d="M0 0 L-17 -26 A31 31 0 0 1 17 -26 Z" fill="rgba(47,155,224,.30)"/><circle r="9" fill="#2f9be0" stroke="#fff" stroke-width="3"/><path d="M0 -6 L4.5 3 L0 1 L-4.5 3 Z" fill="#fff"/></svg></div>`; }
+function beginNav(keep) {
+  if (!route) return; prepNav(); NAVLAYER.clearLayers();
+  navDone = L.polyline([], { color: '#8a93a6', weight: 3 * lineK, opacity: .7, dashArray: '2 7', lineCap: 'round' }).addTo(NAVLAYER);
+  navHalo = L.polyline([], { color: '#fff', weight: 9 * lineK, opacity: .95, lineCap: 'round', lineJoin: 'round' }).addTo(NAVLAYER);
+  navLine = L.polyline([], { color: COL.violet, weight: 5 * lineK, lineCap: 'round', lineJoin: 'round' }).addTo(NAVLAYER);
+  navMe = L.marker([0, 0], { icon: L.divIcon({ className: '', html: navIcon(), iconSize: [56, 56], iconAnchor: [28, 28] }), interactive: false, zIndexOffset: 2000 }).addTo(NAVLAYER);
+  userLayer.clearLayers(); drawUser();
+  if (!keep) { nav.e0 = nav.d0 = nav.t0 = 0; nav.mult = nav.mult || 60; nav.follow = true; }
+  nav.on = true; nav.playing = true; nav.tm = 0; nav.last = performance.now(); nav.fix = false; nav.total = route.length_m;
+  drawUser(); draw3dRoute(); navHud(); cancelAnimationFrame(nav.raf); nav.raf = requestAnimationFrame(navTick);
+}
+function stopNav() {
+  if (!nav.on) return; nav.on = nav.playing = nav.fix = nav.rerouting = false; cancelAnimationFrame(nav.raf); NAVLAYER.clearLayers();
+  if (navMe3) { scene.remove(navMe3); navMe3 = null; } $('navhud').hidden = true; drawUser(); draw3dRoute(); if (map.dragging) map.dragging.enable();
+}
+function fixPosition(rc) {                                // "I am really here": re-plan from this cell, keep the totals walked so far
+  if (!Number.isFinite(G.tmult[rc[0] * G.w + rc[1]])) { $('msg').className = 'msg err'; $('msg').textContent = T('blocked'); return; }
+  const st = navState(); nav.e0 += st.E; nav.d0 += st.s; nav.t0 += st.tm; nav.fix = false; nav.rerouting = true; nav.playing = false;
+  start = rc; $('msg').className = 'msg'; $('msg').textContent = T('finding'); navHud(); scheduleRoute();
+}
+function setNavTime(tm) { nav.tm = tm; }                  // single entry for a position: today the simulation, later a real source
+function navTick(now) {
+  if (!nav.on) return; const dt = Math.min(0.25, (now - nav.last) / 1000); nav.last = now;
+  if (nav.playing) setNavTime(nav.tm + dt * nav.mult);
+  const st = navState(); if (st.done && nav.playing) { nav.playing = false; navHud(st); }   // rebuild once: Pause becomes Resume
+  nav.frac = st.s / (nav.cd[nav.n - 1] || 1); const p = route.path;
+  const here = ll(st.r, st.c), ahead = p.slice(st.k + 1).map(q => ll(...q)), behind = p.slice(0, st.k + 1).map(q => ll(...q));
+  navLine.setLatLngs([here, ...ahead]); navHalo.setLatLngs([here, ...ahead]); navDone.setLatLngs([...behind, here]);
+  navMe.setLatLng(here); const sv = navMe.getElement() && navMe.getElement().querySelector('svg'); if (sv) sv.style.transform = `rotate(${nav.hdg}deg) scale(${lineK})`;
+  if (nav.follow && $('map').style.display !== 'none' && now - (nav.panT || 0) > 90) { nav.panT = now; map.setView(here, map.getZoom(), { animate: false }); }
+  nav3d(st); if (now - nav.hudT > 120 || st.done) { nav.hudT = now; navHudUpdate(st); }
+  nav.raf = requestAnimationFrame(navTick);
+}
+function nav3d(st) {
+  if (!scene) return; const rad = Math.max(W, H) / 520;
+  if (!navMe3) { navMe3 = new THREE.Group(); const cone = new THREE.Mesh(new THREE.ConeGeometry(1, 3, 16).rotateX(Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x2f9be0, depthTest: false }));
+    cone.renderOrder = 21; cone.position.z = 0; navMe3.add(cone); const dot = sprite(disc('', '#2f9be0', '#ffffff'), .04, false); navMe3.add(dot); navMe3.userData = { cone }; scene.add(navMe3); }
+  const pos = pt3f(st.r, st.c, ground ? rad * 1.4 + .6 : rad * 2.5); navMe3.position.copy(pos);
+  const h = nav.hdg * Math.PI / 180, cone = navMe3.userData.cone, sc = ground ? .7 * lineK : rad * 4 * viewScale() * lineK; cone.scale.setScalar(sc); navMe3.children[1].visible = !ground; navMe3.children[1].scale.setScalar(.04 * lineK);
+  cone.rotation.y = Math.atan2(Math.sin(h), -Math.cos(h)); { const ah = ground ? 28 + sc * 2 : sc * 2.6; cone.position.set(Math.sin(h) * ah, 0, -Math.cos(h) * ah); }
+  wipe3d(); if (ground && $('three').style.display === 'block') eyeView(st.r, st.c, nav.hdg); else if (nav.follow && $('three').style.display === 'block') { const d = pos.clone().sub(controls.target).multiplyScalar(.12); controls.target.add(d); camera.position.add(d); }
+}
+function wipe3d() { const tubes = ov && ov.userData.tubes; if (!tubes) return; for (const { m, seg } of tubes) m.geometry.setDrawRange(Math.min(seg - 1, Math.floor(nav.frac * seg)) * 48, Infinity); }
+function navHud(st) {                                    // rebuilds the panel (only on a state change: buttons must not be replaced under the pointer)
+  const el = $('navhud'), sp = [1, 10, 60, 300]; el.hidden = false;
+  el.innerHTML = `<div class="top"><div class="ic"><svg id="hd-ic" width="28" height="28" viewBox="-14 -14 28 28"><path d="M0 -11 L9 3 L2 1 L2 11 L-2 11 L-2 1 L-9 3 Z" fill="#fff"/></svg></div>
+    <div class="tx"><b id="hd-head"></b><span id="hd-sub"></span></div></div>
+    <div class="st"><div><b id="hd-rem"></b><span>${T('navremain')}</span></div><div><b id="hd-eta"></b><span>${T('naveta')}</span></div><div><b id="hd-used"></b><span>${T('navused')}</span></div></div>
+    <div class="bar"><i id="hd-bar"></i></div>
+    <label class="pace"><span>${T('navpace')} <b id="pc-v">${nav.pace.toFixed(1)} km/h</b></span><input id="pc" type="range" min="1" max="40" step=".5" value="${nav.pace}"></label>
+    <div class="ctl"><button id="nv-play" aria-pressed="${nav.playing}">${nav.playing ? T('navpause') : T('navplay')}</button>
+      ${sp.map(v => `<button data-sp="${v}" aria-pressed="${nav.mult === v}" title="${T('navspeed')}">${v}×</button>`).join('')}
+      <button id="nv-follow" aria-pressed="${nav.follow}">${T('navfollow')}</button><button id="nv-fix" aria-pressed="${nav.fix}">${T('navfix')}</button><button class="stop" id="nv-stop">${T('navstop')}</button></div>
+    <div class="note">${T('navsim')}</div>`;
+  navHudUpdate(st);
+}
+function navHudUpdate(st) {                              // text, bar and arrow only
+  st = st || navState(); const { s, E, tm, done } = st, remD = nav.cd[nav.n - 1] - s, remT = nav.ct[nav.n - 1] - tm;
+  const nextTurn = nav.turns.find(t => t.d > s + 1), dist = nextTurn ? nextTurn.d - s : remD;
+  let head, rot = 0;
+  if (nav.fix) head = T('navfixhint'); else if (done) head = T('navarrive');
+  else if (nextTurn) { rot = -nextTurn.ang; head = T('navturn', fmtD(dist).join(' '), nextTurn.ang > 0 ? T('navleft') : T('navright'), Math.round(Math.abs(nextTurn.ang))); }
+  else head = T('navstraight', fmtD(dist).join(' '));
+  set('hd-head', head); set('hd-sub', `${T('navhead')} ${COMPASS[Math.round(nav.hdg / 45) % 8]} ${Math.round(nav.hdg)}°`);
+  set('hd-rem', fmtD(Math.max(0, remD)).join(' ')); set('hd-eta', fmtH(Math.max(0, remT) / 3600)); set('hd-used', fmtE(nav.e0 + E).join(' '));
+  $('hd-bar').style.width = Math.min(100, (nav.d0 + s) / (nav.d0 + nav.cd[nav.n - 1]) * 100).toFixed(1) + '%'; $('hd-ic').style.transform = `rotate(${rot}deg)`;
+}
+$('navhud').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'nv-play') { if (nav.tm >= nav.ct[nav.n - 1]) nav.tm = 0; nav.playing = !nav.playing; nav.last = performance.now(); }
+  else if (b.dataset.sp) nav.mult = +b.dataset.sp;
+  else if (b.id === 'nv-follow') nav.follow = !nav.follow;
+  else if (b.id === 'nv-fix') { nav.fix = !nav.fix; if (nav.fix) nav.playing = false; }
+  else if (b.id === 'nv-stop') { stopNav(); return; }
+  navHud(); });
+$('navhud').addEventListener('input', e => { if (e.target.id === 'pc') setPace(+e.target.value); });
+map.on('dragstart', () => { if (nav.on && nav.follow) { nav.follow = false; navHud(); } });
+$('navgo').onclick = () => beginNav(false);
+$('lw').value = lineK; set('lwv', lineK.toFixed(1) + '×'); set('t-lwl', T('lwl'));
+$('lw').oninput = e => { lineK = +e.target.value; draw3dRoute(); set('lwv', lineK.toFixed(1) + '×'); try { localStorage.setItem('msm.lineK', lineK); } catch (er) { /* ignore */ }
+  if (nav.on) { navDone.setStyle({ weight: 3 * lineK }); navHalo.setStyle({ weight: 9 * lineK }); navLine.setStyle({ weight: 5 * lineK }); } drawUser(); };
+$('navgo').textContent = T('navgo');
+
+/* elevation profile: each segment coloured by its steepness */
+const PW = 352, PH = 190, PL = 38, PR = 8, PT = 8, PB = 24;
+function profileSvg(rt) {
+  const W_ = PW, H_ = PH, pl = PL, pr_ = PR, pt = PT, pb = PB, xs = rt.profile_dist_m, ys = rt.profile_m, X1 = xs[xs.length - 1] || 1;
+  let lo = Math.min(...ys), hi = Math.max(...ys); if (hi - lo < 4) { hi += 2; lo -= 2; } const padv = (hi - lo) * .08; lo -= padv; hi += padv;
+  const sx = x => pl + x / X1 * (W_ - pl - pr_), sy = y => H_ - pb - (y - lo) / (hi - lo) * (H_ - pt - pb);
+  let area = `M${sx(0)},${H_ - pb} ` + xs.map((x, i) => `L${sx(x).toFixed(1)},${sy(ys[i]).toFixed(1)}`).join(' ') + ` L${sx(X1)},${H_ - pb}Z`;
+  let segs = '';
+  for (let i = 1; i < xs.length; i++) { const fl = Math.sqrt(Math.max((xs[i] - xs[i - 1]) ** 2 - (ys[i] - ys[i - 1]) ** 2, 1e-9)), sl = Math.atan2(Math.abs(ys[i] - ys[i - 1]), fl) * 180 / Math.PI;
+    const k = sl > P.slope_hazard_deg ? 2 : sl > P.slope_caution_deg ? 1 : 0; segs += `<line x1="${sx(xs[i - 1]).toFixed(1)}" y1="${sy(ys[i - 1]).toFixed(1)}" x2="${sx(xs[i]).toFixed(1)}" y2="${sy(ys[i]).toFixed(1)}" stroke="${HAZ_COL[k]}" stroke-width="3" stroke-linecap="round"/>`; }
+  const ticks = [0, .25, .5, .75, 1].map(f => `<text x="${sx(X1 * f)}" y="${H_ - 8}" font-size="11.5" fill="#7b869c" text-anchor="${f === 0 ? 'start' : f === 1 ? 'end' : 'middle'}">${fmtD(X1 * f).join(' ')}</text>`).join('');
+  return `<svg class="chart" id="profsvg" viewBox="0 0 ${W_} ${H_}" role="img" aria-label="${T('profile')}"><path d="${area}" fill="${COL.violet}" opacity=".10"/>
+    <line x1="${pl}" x2="${W_ - pr_}" y1="${H_ - pb}" y2="${H_ - pb}" stroke="#dde2ea"/>
+    <text x="${pl - 6}" y="${pt + 8}" font-size="11.5" fill="#7b869c" text-anchor="end">${Math.round(hi)}</text><text x="${pl - 6}" y="${H_ - pb}" font-size="11.5" fill="#7b869c" text-anchor="end">${Math.round(lo)}</text>
+    
+    ${segs}${ticks}<circle id="pcur" r="5.5" fill="#fff" stroke="${COL.ink}" stroke-width="2.5" cx="-20" cy="-20"/></svg>`;
+}
+function renderRoute() {
+  const s = $('s-route');
+  if (!route) { s.innerHTML = `<h2>${T('route')}</h2><p class="empty-state">${T('routehelp')}</p>`; renderBudget(); return; }
+  const [ev, eu] = fmtE(route.energy_j), [dv, du] = fmtD(route.length_m), kcal = Math.round(route.energy_j / 4184), pace = route.length_m / 1000 / route.time_h;
+  let trade = '';
+  if (alt) { const fast = objective === 'time' ? route : alt, lean = objective === 'energy' ? route : alt;
+    const dT = lean.time_h - fast.time_h, dE = fast.energy_j - lean.energy_j;
+    trade = dT * 60 < 1 && dE < 3600 ? `<div class="tradeoff">${T('trade0')}</div>` : `<div class="tradeoff">${T('trade', fmtH(dT), fmtE(fast.energy_j).join(' '), fmtE(dE).join(' '))}</div>`; }
+  s.innerHTML = `<h2>${T('route')}</h2>
+    <div class="figs"><div class="fig big"><b class="num">${ev}<em>${eu}</em></b><span>${T('energy')}, ${kcal.toLocaleString()} kcal</span></div>
+      <div class="fig"><b class="num">${fmtH(route.time_h).replace(' h ', '<em>h</em> ').replace(' min', '<em>min</em>')}</b><span>${T('duration')}</span></div>
+      <div class="fig"><b class="num">${dv}<em>${du}</em></b><span>${T('distance')}</span></div></div>
+    ${trade}
+    <h3 style="font:700 13px var(--sans);margin:16px 0 4px">${T('profile')}</h3>${profileSvg(route)}
+    <div class="legend"><span><i style="background:${HAZ_COL[0]}"></i>&lt; ${P.slope_caution_deg}°</span><span><i style="background:${HAZ_COL[1]}"></i>${P.slope_caution_deg}–${P.slope_hazard_deg}°</span><span><i style="background:${HAZ_COL[2]}"></i>&gt; ${P.slope_hazard_deg}°</span></div>
+    <div class="kv"><span>${T('climb')}</span><span class="num">${Math.round(route.ascent_m)} m</span><span>${T('descent')}</span><span class="num">${Math.round(route.descent_m)} m</span>
+      <span>${T('maxs')}</span><span class="num">${route.max_slope_deg.toFixed(1)}°</span><span>${T('straight')}</span><span class="num">${fmtD(route.straight_m).join(' ')}</span>
+      <span>${T('pace')}</span><span class="num">${pace.toFixed(1)} km/h</span><span>${T('avgp')}</span><span class="num">${Math.round(route.mean_power_w)} W</span></div>`;
+  renderBudget(); const svg = $('profsvg');
+  if (svg) { const xs = route.profile_dist_m, X1 = xs[xs.length - 1] || 1; const mv = ev_ => { const b = svg.getBoundingClientRect(), x = (ev_.clientX - b.left) / b.width * PW;
+      const f = Math.min(1, Math.max(0, (x - PL) / (PW - PL - PR))) * X1; let k = xs.findIndex(v => v >= f); if (k < 0) k = xs.length - 1;
+      const cur = $('pcur'); cur.setAttribute('cx', PL + xs[k] / X1 * (PW - PL - PR)); const ys = route.profile_m; let lo = Math.min(...ys), hi = Math.max(...ys); if (hi - lo < 4) { hi += 2; lo -= 2; } const pv = (hi - lo) * .08; lo -= pv; hi += pv;
+      cur.setAttribute('cy', PH - PB - (ys[k] - lo) / (hi - lo) * (PH - PT - PB)); cursorLayer.clearLayers(); L.circleMarker(ll(...route.path[k]), { radius: 7, color: '#fff', weight: 3, fillColor: COL.ink, fillOpacity: 1 }).addTo(cursorLayer); };
+    svg.addEventListener('pointermove', mv); svg.addEventListener('pointerleave', () => { $('pcur').setAttribute('cx', -20); cursorLayer.clearLayers(); }); }
+}
+
+/* ============================== clock: Earth time + local mean solar time ============================== */
+(function clock() {
+  const el = $('clock'); if (!meta.center_lon && meta.center_lon !== 0) { el.style.display = 'none'; return; }
+  const fmt = new Intl.DateTimeFormat([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  const tick = () => { const now = Date.now(), m = marsTime(now, meta.center_lon);
+    set('ck-e', T('clockE')); set('ck-et', fmt.format(now)); set('ck-m', T('clockM')); set('ck-mt', hhmm(m.ltst)); el.title = T('clockTip') + ' Ls ' + m.ls.toFixed(1) + '°, MSD ' + m.msd.toFixed(3); };
+  tick(); setInterval(tick, 5000);
+})();
+
+/* ============================== sun and temperature ============================== */
+const plans = meta.eva && meta.eva.plans;
+function renderEva() {
+  const s = $('s-eva');
+  if (!plans) { s.innerHTML = `<h2>${T('eva')}</h2><p class="empty-state">${T('nosol')}</p>`; set('lsv', ''); return; }
+  const p = plans[+$('ls').value]; set('lsv', `Ls ${p.ls}°`);
+  const W_ = 352, H_ = 200, pl = 32, pr_ = 30, pt = 8, pb = 26, sx = h => pl + h / 24 * (W_ - pl - pr_);
+  const tc = p.hourly.map(r => r.temp_c), se = p.hourly.map(r => r.sun_elev_deg), hrs = p.hourly.map(r => r.hour);
+  const tLo = Math.min(...tc, p.limits.t_min_c) - 5, tHi = Math.max(...tc) + 5, sy = v => H_ - pb - (v - tLo) / (tHi - tLo) * (H_ - pt - pb), sy2 = v => H_ - pb - (v + 90) / 180 * (H_ - pt - pb);
+  const line = (ys, f, col, w = 2.6) => `<path d="${ys.map((v, i) => (i ? 'L' : 'M') + sx(hrs[i]).toFixed(1) + ',' + f(v).toFixed(1)).join(' ')}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linejoin="round"/>`;
+  const win = p.windows.map(w => { const a = Math.min(w.start_h, 24), b = Math.min(w.end_h, 24); let o = `<rect x="${sx(a)}" y="${pt}" width="${sx(b) - sx(a)}" height="${H_ - pt - pb}" fill="${COL.leaf}" opacity=".18"/>`;
+    if (w.end_h > 24) o += `<rect x="${sx(0)}" y="${pt}" width="${sx(w.end_h - 24) - sx(0)}" height="${H_ - pt - pb}" fill="${COL.leaf}" opacity=".18"/>`; return o; }).join('');
+  const hx = [0, 6, 12, 18, 24].map(h => `<text x="${sx(h)}" y="${H_ - 9}" font-size="11.5" fill="#7b869c" text-anchor="middle">${h}</text>`).join('');
+  const zero = `<line x1="${pl}" x2="${W_ - pr_}" y1="${sy2(0)}" y2="${sy2(0)}" stroke="#dde2ea"/>`;
+  s.innerHTML = `<h2>${T('eva')}</h2>
+    <svg class="chart" viewBox="0 0 ${W_} ${H_}" role="img" aria-label="${T('eva')}">${win}${zero}
+      <line x1="${pl}" x2="${W_ - pr_}" y1="${sy(p.limits.t_min_c)}" y2="${sy(p.limits.t_min_c)}" stroke="${COL.sky}" stroke-dasharray="5 5"/>
+      ${line(se, sy2, COL.sun)}${line(tc, sy, COL.sky)}${hx}
+      <text x="${pl - 6}" y="${pt + 8}" font-size="11.5" fill="#2f9be0" text-anchor="end">${Math.round(tHi)}</text><text x="${pl - 6}" y="${H_ - pb}" font-size="11.5" fill="#2f9be0" text-anchor="end">${Math.round(tLo)}</text>
+      <text x="${W_ - pr_ + 6}" y="${pt + 8}" font-size="11.5" fill="#b88700">90</text><text x="${W_ - pr_ + 6}" y="${H_ - pb}" font-size="11.5" fill="#b88700">−90</text></svg>
+    <div class="legend"><span><i style="background:${COL.sky}"></i>${T('temp')}</span><span><i style="background:${COL.sun}"></i>${T('sun')}</span><span><i style="background:${COL.leaf};opacity:.5;height:8px"></i>${T('windows')}</span></div>
+    <div class="kv"><span>${T('windows')}</span><span class="num">${p.windows.length ? p.windows.map(w => `${w.start_h}–${w.end_h} h`).join(', ') : T('none')}</span></div>
+    <p class="note">${T('lsinfo', p.ls, p.declination_deg, p.daylight_h)}${p.dust_season ? `. <b>${T('dust')}</b>` : ''}</p>`;
+}
+$('ls').oninput = () => { renderEva(); renderBudget(); if (safVis.shadow) computeShadow(); };
+
+/* ============================== where the data comes from ============================== */
+function renderData() {
+  const rows = [[T('dtm'), T('dtmv', prov ? prov.dem.final_px_m.toFixed(1) : G.px.toFixed(1)), meta.synthetic ? 'assumed' : 'data'],
+    [T('meda'), prov ? T('medav', prov.meda.sols_used.length) : '—', prov ? 'data' : 'assumed'], [T('tools'), T('toolsv'), 'model']];
+  $('s-data').innerHTML = `<h2>${T('data')}</h2><div class="kv" style="grid-template-columns:auto 1fr;gap:10px 14px">${rows.map(([a, b, k]) => `<span>${a}</span><span style="text-align:left;font-weight:500">${b}<br>${chip(k)}</span>`).join('')}</div>
+    <p class="note"><a href="sources.html" style="color:var(--ink);font-weight:650">${T('sources')}</a></p>`;
+}
+
+
+/* ============================== saved places ============================== */
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const CATS = [['base', COL.leaf], ['resource', COL.sky], ['hazard', COL.crimson], ['science', COL.violet], ['other', COL.ink]];
+const catColor = k => (CATS.find(x => x[0] === k) || CATS[4])[1];
+const PKEY = 'msm.places.v1.' + (meta.name || 'site');
+let places = [], storageOK = true;
+try { places = JSON.parse(localStorage.getItem(PKEY) || '[]'); if (!Array.isArray(places)) places = []; } catch (e) { storageOK = false; places = []; }
+places = places.filter(p => p && typeof p.name === 'string' && Number.isInteger(p.r) && Number.isInteger(p.c) && p.r >= 0 && p.c >= 0 && p.r < G.h && p.c < G.w);
+const persist = () => { try { localStorage.setItem(PKEY, JSON.stringify(places)); } catch (e) { storageOK = false; } };
+const pinSvg = col => `<svg width="28" height="34" viewBox="0 0 28 34"><path d="M14 33C14 33 2 20 2 12a12 12 0 0 1 24 0c0 8-12 21-12 21z" fill="${col}" stroke="#fff" stroke-width="2"/><circle cx="14" cy="12" r="4.5" fill="#fff"/></svg>`;
+const placesLayer = L.layerGroup().addTo(map);
+function drawPlaces() {
+  placesLayer.clearLayers();
+  places.forEach(p => L.marker(ll(p.r, p.c), { icon: L.divIcon({ className: 'shelterpin', iconSize: [28, 34], iconAnchor: [14, 32], html: pinSvg(catColor(p.cat)) }), zIndexOffset: 500 })
+    .bindTooltip(p.name, { direction: 'top', offset: [0, -28] }).on('click', () => { pickCell([p.r, p.c]); }).addTo(placesLayer));   // a saved place works like any map click: in Walk mode it sets the start or the destination
+  renderPlacesList(); draw3dRoute();
+}
+function savePlace(existing) {
+  const name = $('pf-name').value.trim(), msg = $('pf-msg'); if (!name) { msg.className = 'msg err'; msg.textContent = T('nameneeded'); $('pf-name').focus(); return; }
+  const rec = existing || { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), r: placeRC[0], c: placeRC[1], t: new Date().toISOString() };
+  rec.name = name; rec.desc = $('pf-desc').value.trim(); rec.cat = $('pf-cat').value; if (!existing) places.push(rec);
+  persist(); drawPlaces(); renderPlace(); const m2 = $('pf-msg'); m2.className = 'msg'; m2.textContent = storageOK ? T('placesaved', name) : T('storagebad');
+}
+function deletePlace(id) { places = places.filter(p => p.id !== id); persist(); drawPlaces(); renderPlace(); }
+function renderPlacesList() {
+  const s = $('s-places'), nm = c => T('cats')[CATS.findIndex(x => x[0] === c)] || T('cats')[4];
+  s.innerHTML = `<h2>${T('placesh')}</h2>` + (places.length ? `<div class="plist">${places.map(p => `<div class="pitem" data-id="${p.id}"><i class="dot" style="background:${catColor(p.cat)}"></i>
+      <div><b>${esc(p.name)}</b><small>${nm(p.cat)} · x ${Math.round(p.c * G.px)} m, y ${Math.round(p.r * G.px)} m${p.desc ? '<br>' + esc(p.desc) : ''}</small></div>
+      <div class="acts"><button data-a="go">${T('goto2')}</button><button data-a="from" title="${T('wfromt')}">${T('wfrom')}</button><button data-a="to" title="${T('wtot')}">${T('wto')}</button>${p.cat === 'base' ? `<button data-a="sh">${T('usesh')}</button>` : ''}</div></div>`).join('')}</div>` : `<p class="empty-state">${T('placeshelp')}</p>`)
+    + `<div class="row2"><button class="btn" id="pl-exp"${places.length ? '' : ' disabled'}>${T('exportp')}</button><button class="btn" id="pl-imp">${T('importp')}</button></div><input type="file" id="pl-file" accept="application/json,.json" hidden>`
+    + (storageOK ? '' : `<p class="note">${T('storagebad')}</p>`) + `<p class="note" id="pl-msg" role="status"></p>`;
+  $('pl-exp').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ site: meta.name, px_m: G.px, places }, null, 1)], { type: 'application/json' })); a.download = 'saved_places.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); };
+  $('pl-imp').onclick = () => $('pl-file').click();
+  $('pl-file').onchange = async e => { const f = e.target.files[0]; if (!f) return; try {
+      const d = JSON.parse(await f.text()), list = (Array.isArray(d) ? d : d.places) || []; let n = 0;
+      for (const p of list) { if (p && typeof p.name === 'string' && Number.isInteger(p.r) && Number.isInteger(p.c) && p.r >= 0 && p.c >= 0 && p.r < G.h && p.c < G.w && !places.some(q => q.id === p.id)) { places.push({ id: String(p.id || Date.now().toString(36) + n), name: p.name.slice(0, 60), desc: String(p.desc || '').slice(0, 400), cat: CATS.some(x => x[0] === p.cat) ? p.cat : 'other', r: p.r, c: p.c, t: p.t || '' }); n++; } }
+      persist(); drawPlaces(); set('pl-msg', T('importok', n)); } catch (err) { set('pl-msg', T('importbad')); } };
+}
+$('s-places').addEventListener('click', e => { const b = e.target.closest('button[data-a]'); if (!b) return; const p = places.find(q => q.id === b.closest('.pitem').dataset.id); if (!p) return;
+  if (b.dataset.a === 'from' || b.dataset.a === 'to') { stopNav(); setMode('walk'); const rc = [p.r, p.c];
+    if (!Number.isFinite(G.tmult[rc[0] * G.w + rc[1]])) { $('msg').className = 'msg err'; $('msg').textContent = T('blocked'); return; }
+    $('msg').className = 'msg'; $('msg').textContent = ''; setPlace(rc);
+    if (b.dataset.a === 'from') start = rc; else goal = rc;
+    if (!start || !goal) route = alt = null; drawUser(); if (start && goal) scheduleRoute(); return; }
+  if (b.dataset.a === 'go') go({ at: [p.r, p.c] }); else if (b.dataset.a === 'sh') { setShelter([p.r, p.c]); setMode('safety'); } });
+
+/* ============================== safety: shelter, return reach, radio line of sight, shadows ============================== */
+// Apollo figures used as the consumable budget (see web/sources.json P10-P12):
+//  - J-mission PLSS (Apollo 15-17): 8 h design EVA duration;  - mean metabolic rate of Apollo 15-17 EVAs: 930 Btu/h = 272.6 W (NASA TN D-7883);
+//  - greatest ranges from the lunar module with the rover: 5.0, 4.5 and 7.6 km.   The reserve fraction is a team assumption.
+const APOLLO_MEAN_W = 930 * 0.29307107;
+let shelter = null; const shelterLayer = L.layerGroup().addTo(map);
+function setShelter(rc) {
+  shelter = rc; shelterLayer.clearLayers();
+  if (rc) L.marker(ll(...rc), { icon: L.divIcon({ className: 'shelterpin', iconSize: [34, 34], iconAnchor: [17, 17], html: `<svg width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="15" fill="#1b2540" stroke="#f0bf2b" stroke-width="3"/><path d="M9 18 17 10l8 8v7H9z" fill="#fff"/></svg>` }), zIndexOffset: 900, interactive: false }).addTo(shelterLayer);
+  $('shelterbox').className = 'shelterbox' + (rc ? '' : ' empty'); $('shelterbox').textContent = rc ? T('shelterat', Math.round(rc[1] * G.px), Math.round(rc[0] * G.px)) : T('shelternone');
+  for (const n of ['reach', 'los']) { SAF[n] = null; if (safOvl[n]) { map.removeLayer(safOvl[n]); safOvl[n] = null; } } set('reachres', ''); set('losres', ''); tex3dDirty = true; draw3dRoute();
+}
+$('shelterset').onclick = () => { if (!placeRC) { $('shelterbox').className = 'shelterbox empty'; $('shelterbox').textContent = T('shelterpick'); return; } setShelter(placeRC); };
+function setSafLayer(name, rgba) {
+  const cv = document.createElement('canvas'); cv.width = G.w; cv.height = G.h; cv.getContext('2d').putImageData(new ImageData(rgba, G.w, G.h), 0, 0); SAF[name] = cv;
+  if (safOvl[name]) map.removeLayer(safOvl[name]); safOvl[name] = L.imageOverlay(cv.toDataURL(), bounds, { opacity: op(), interactive: false }); syncSaf();
+}
+function syncSaf() { for (const n of ['reach', 'los', 'shadow']) { const o = safOvl[n]; if (!o) continue; if (safVis[n]) { o.addTo(map); o.setOpacity(op()); } else map.removeLayer(o); } tex3dDirty = true; }
+for (const n of ['reach', 'los', 'shadow']) $('vs-' + n).onchange = e => { safVis[n] = e.target.checked; syncSaf(); };
+const busyBtn = async (id, label, fn) => { const b = $(id), old = b.textContent; b.disabled = true; b.textContent = T('computing'); await new Promise(r => setTimeout(r, 40)); try { await fn(); } finally { b.disabled = false; b.textContent = old; } };
+const rgba = n => new Uint8ClampedArray(n * 4);
+const px4 = (a, i, r, g, b, al) => { a[i * 4] = r; a[i * 4 + 1] = g; a[i * 4 + 2] = b; a[i * 4 + 3] = al; };
+
+async function computeReach() {
+  if (!shelter) { set('reachres', T('shelterpick')); return; }
+  const S = shelter[0] * G.w + shelter[1], P = { dem: G.dem, tmult: G.tmult, w: G.w, h: G.h, px: G.px, walker };
+  if (!Number.isFinite(G.tmult[S])) { set('reachres', T('blocked')); return; }
+  const hrs = +$('sf-eva').value, res = +$('sf-res').value / 100, tMax = hrs * 3600 * (1 - res), eMax = APOLLO_MEAN_W * tMax;
+  const wr = await rcall('field', { S, walker: wcopy() }), f = wr && !wr.error ? wr.f : costField(P, S, false), b = wr && !wr.error ? wr.b : costField(P, S, true), rf = reachField(f, b, { tMaxS: tMax, eMaxJ: eMax }), img = rgba(G.w * G.h);
+  let far = 0, farBind = 0, n = 0, cnt = [0, 0, 0];
+  for (let i = 0; i < rf.used.length; i++) { const u = rf.used[i]; if (!(u <= 1)) continue; n++;
+    const k = u <= .5 ? 0 : u <= .75 ? 1 : 2; cnt[k]++; const col = [[74, 154, 47, 150], [240, 191, 43, 160], [236, 122, 44, 170]][k]; px4(img, i, ...col);
+    const d = Math.hypot((i / G.w | 0) - shelter[0], i % G.w - shelter[1]) * G.px; if (d > far) { far = d; farBind = rf.bind[i]; } }
+  setSafLayer('reach', img); $('vs-reach').checked = safVis.reach = true; syncSaf();
+  $('reachres').innerHTML = n <= 1 ? T('reachnone') : `<div class="lg"><span><i style="background:rgb(74,154,47)"></i>${T('lg50')}</span><span><i style="background:rgb(240,191,43)"></i>${T('lg75')}</span><span><i style="background:rgb(236,122,44)"></i>${T('lg100')}</span></div>
+    <p>${T('reachres', fmtD(far).join(' '), T('bindn')[farBind - 1], fmtH(tMax / 3600), Math.round(eMax / 3600))}</p><p class="note">${T('reachapollo')}</p>`;
+}
+$('sf-reach').onclick = () => busyBtn('sf-reach', '', computeReach);
+
+const heavyCache = new Map();   // key -> mask: moving a slider back to a value already computed is instant
+async function heavy(key, op, args, fallback) {
+  if (heavyCache.has(key)) { const v = heavyCache.get(key); heavyCache.delete(key); heavyCache.set(key, v); return v; }
+  const r = await rcall(op, args), out = r && !r.error ? r.out : fallback();
+  heavyCache.set(key, out); if (heavyCache.size > 24) heavyCache.delete(heavyCache.keys().next().value);
+  return out;
+}
+async function computeLos() {
+  if (!shelter) { set('losres', T('shelterpick')); return; }
+  const ha = +$('sf-ant').value, hr_ = +$('sf-rx').value, gg = { dem: G.dem, w: G.w, h: G.h, px: G.px };
+  const vis_ = await heavy(`los|${shelter}|${ha}|${hr_}`, 'los', { src: shelter, hAnt: ha, hRx: hr_ }, () => viewshed(gg, shelter, ha, hr_)), img = rgba(G.w * G.h); let seen = 0;
+  for (let i = 0; i < vis_.length; i++) { if (vis_[i]) { seen++; px4(img, i, 47, 155, 224, 105); } else px4(img, i, 27, 37, 64, 95); }
+  setSafLayer('los', img); $('vs-los').checked = safVis.los = true; syncSaf();
+  $('losres').innerHTML = `<div class="lg"><span><i style="background:rgb(47,155,224)"></i>${T('lgsee')}</span><span><i style="background:rgb(27,37,64)"></i>${T('lghid')}</span></div><p><b>${Math.round(seen / vis_.length * 100)}%</b> ${T('losres')}</p>`;
+}
+$('sf-los').onclick = () => busyBtn('sf-los', '', computeLos);
+
+let shadowTimer = 0;
+function currentPlan() { return plans && plans[+$('ls').value]; }
+let shadowSeq = 0;
+async function computeShadow() {
+  const my = ++shadowSeq, p = currentPlan(); const hr = +$('sf-hour').value; set('sf-hourv', hhmm(hr));
+  if (!p) { set('shadowres', T('nosol')); return; }
+  const sun = sunPosition(meta.center_lat ?? p.lat, p.declination_deg, hr), gg = { dem: G.dem, w: G.w, h: G.h, px: G.px };
+  const m = await heavy(`sh|${sun.az.toFixed(1)}|${sun.el.toFixed(1)}`, 'shadow', { az: sun.az, el: sun.el }, () => shadowMask(gg, sun.az, sun.el));
+  if (my !== shadowSeq) return;                                    // a newer slider position has been asked for meanwhile: drop this one
+  const img = rgba(G.w * G.h); let sh = 0;
+  for (let i = 0; i < m.length; i++) if (m[i]) { sh++; px4(img, i, 27, 37, 64, sun.el <= 0 ? 120 : 140); }
+  setSafLayer('shadow', img);
+  $('shadowres').innerHTML = `<p>${sun.el > 0 ? T('sunnow', sun.el.toFixed(0), Math.round(sun.az)) : T('sunnight')}</p><p><b>${Math.round(sh / m.length * 100)}%</b> ${T('shaded')} <span class="note">(Ls ${p.ls}°)</span></p>`;
+}
+$('sf-hour').oninput = () => { set('sf-hourv', hhmm(+$('sf-hour').value)); if (!safVis.shadow) return; clearTimeout(shadowTimer); shadowTimer = setTimeout(computeShadow, 140); };
+$('vs-shadow').addEventListener('change', e => { if (e.target.checked && !SAF.shadow) computeShadow(); });
+for (const [id, out, f] of [['sf-eva', 'sf-evav', v => v + ' h'], ['sf-res', 'sf-resv', v => v + ' %'], ['sf-ant', 'sf-antv', v => v + ' m'], ['sf-rx', 'sf-rxv', v => (+v).toFixed(1) + ' m']]) { const upd = () => set(out, f($(id).value)); $(id).addEventListener('input', upd); upd(); }
+{ const now = marsTime(Date.now(), meta.center_lon || 0), hr0 = ((now.ltst % 24 + 24) % 24), day = hr0 >= 8 && hr0 <= 16; $('sf-hour').value = day ? Math.round(hr0 * 4) / 4 : 14; set('sf-hourv', hhmm(+$('sf-hour').value)); }
+
+/* ============================== time budget: does the walk end after sunset or below the cold limit? ============================== */
+let budgetStart = Math.round(((marsTime(Date.now(), meta.center_lon || 0).ltst % 24 + 24) % 24) * 4) / 4, budgetBack = false;
+function renderBudget() {
+  const s = $('s-budget');
+  if (!route) { s.innerHTML = `<h2>${T('budgeth')}</h2><p class="empty-state">${T('budgetnone')}</p>`; return; }
+  const p = currentPlan(); if (!p) { s.innerHTML = `<h2>${T('budgeth')}</h2><p class="empty-state">${T('nosol')}</p>`; return; }
+  const dur = route.time_h / SOL_H * (budgetBack ? 2 : 1), b = timeBudget(p, budgetStart, dur), t = x => hhmm(((x % 24) + 24) % 24), lab = { ok: 'budgetok', caution: 'budgetcaution', danger: 'budgetdanger' }[b.status];
+  const items = [`<li>${T('budgetwalk', t(b.startH), t(b.endH))} <span class="note">(${fmtH(dur * SOL_H)})</span></li>`];
+  if (b.sunsetH !== null) items.push(`<li${b.darkH > 0 ? ' class="bad"' : ''}>${T('budgetsunset', t(b.sunsetH))}</li>`);
+  if (b.darkH > 0) items.push(`<li class="bad">${T('budgetdark', fmtH(b.darkH))}</li>`); if (b.lowH > b.darkH) items.push(`<li>${T('budgetlow', fmtH(b.lowH - b.darkH))}</li>`);
+  items.push(`<li${b.coldH > 0 ? ' class="bad"' : ''}>${b.coldH > 0 ? T('budgetcold', fmtH(b.coldH)) + ' · ' : ''}${T('budgetmin', b.minTempC.toFixed(0), t(b.minTempAtH), p.limits.t_min_c)}</li>`);
+  items.push(`<li>${T('budgetsafe')}: <b>${b.safeStarts.length ? b.safeStarts.map(([a, z]) => `${t(a)}–${t(z)}`).join(', ') : T('none')}</b></li>`);
+  s.innerHTML = `<h2>${T('budgeth')} <span class="bstat ${b.status}">${T(lab)}</span></h2>
+    <div class="range"><label for="bg-start"><b>${T('budgetstart')}</b><span id="bg-startv">${t(budgetStart)}</span></label><input id="bg-start" type="range" min="0" max="24" step="0.25" value="${budgetStart}"></div>
+    <label class="chk"><input type="checkbox" id="bg-back"${budgetBack ? ' checked' : ''}><span>${T('budgetback')}</span></label>
+    <ul class="blist">${items.join('')}</ul><p class="note">${T('budgetseason', p.ls)}</p>`;
+  $('bg-start').oninput = e => { budgetStart = +e.target.value; renderBudget(); $('bg-start').focus(); }; $('bg-back').onchange = e => { budgetBack = e.target.checked; renderBudget(); };
+}
+
+
+/* ============================== walker's view (3D) and printable route card ============================== */
+let ground = false, saved3d = null;
+function eyeView(r, c, hdg) {                                  // camera at head height, looking along hdg (0 = north, 90 = east)
+  const rad = Math.max(W, H) / 520, eye = pt3f(r, c, rad * 1.4 + 2.2), h_ = hdg * Math.PI / 180, dir = new THREE.Vector3(Math.sin(h_), 0, -Math.cos(h_));
+  camera.position.copy(eye); controls.target.copy(eye.clone().add(dir.multiplyScalar(Math.max(60, rad * 8))).add(new THREE.Vector3(0, -3, 0))); camera.near = .3; camera.updateProjectionMatrix(); controls.update();
+}
+function groundHere() {
+  if (nav.on) { const st = navState(); return [st.r, st.c, nav.hdg]; }
+  if (route) { const p = route.path, k = Math.min(p.length - 1, 6); return [p[0][0], p[0][1], (Math.atan2(p[k][1] - p[0][1], -(p[k][0] - p[0][0])) * 180 / Math.PI + 360) % 360]; }
+  const rc = placeRC || start || [G.h >> 1, G.w >> 1]; return [rc[0], rc[1], 0];
+}
+$('gbtn').onclick = () => {
+  if (!camera) return; ground = !ground; draw3dRoute(); $('gbtn').setAttribute('aria-pressed', ground); set('gbtn', T(ground ? 'groundoff' : 'groundbtn'));
+  if (ground) { saved3d = { p: camera.position.clone(), t: controls.target.clone(), near: camera.near }; eyeView(...groundHere()); }
+  else if (saved3d) { camera.position.copy(saved3d.p); controls.target.copy(saved3d.t); camera.near = saved3d.near; camera.updateProjectionMatrix(); controls.update(); }
+};
+function printCard() {
+  if (!route) return; prepNav();
+  const SCALE = Math.min(1, 760 / G.w), cw = Math.round(G.w * SCALE), ch = Math.round(G.h * SCALE), cv = document.createElement('canvas'); cv.width = cw; cv.height = ch; const c = cv.getContext('2d');
+  c.drawImage(layerImgs.hillshade, 0, 0, cw, ch); c.globalCompositeOperation = 'multiply'; c.fillStyle = 'rgb(214,140,100)'; c.fillRect(0, 0, cw, ch); c.globalCompositeOperation = 'source-over';
+  const X = q => (q[1] + .5) * SCALE, Y = q => (q[0] + .5) * SCALE;
+  c.lineJoin = c.lineCap = 'round'; for (const [col, wd] of [['#fff', 7], [COL.violet, 3.5]]) { c.strokeStyle = col; c.lineWidth = wd; c.beginPath(); route.path.forEach((q, i) => i ? c.lineTo(X(q), Y(q)) : c.moveTo(X(q), Y(q))); c.stroke(); }
+  const disc2 = (q, col, t) => { c.fillStyle = col; c.strokeStyle = '#fff'; c.lineWidth = 3; c.beginPath(); c.arc(X(q), Y(q), 11, 0, 7); c.fill(); c.stroke(); c.fillStyle = '#fff'; c.font = '700 13px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(t, X(q), Y(q) + 1); };
+  disc2(route.path[0], COL.sky, 'A'); disc2(route.path[route.path.length - 1], COL.violet, 'B'); if (shelter) disc2(shelter, '#1b2540', '⌂'); places.forEach(p => { c.fillStyle = catColor(p.cat); c.beginPath(); c.arc(X([p.r, p.c]), Y([p.r, p.c]), 5, 0, 7); c.fill(); });
+  const pv = document.createElement('canvas'); pv.width = 760; pv.height = 170; const g = pv.getContext('2d'); const ys = route.profile_m, xs = route.profile_dist_m, X1 = xs[xs.length - 1] || 1; let lo = Math.min(...ys), hi = Math.max(...ys); if (hi - lo < 4) { hi += 2; lo -= 2; }
+  g.fillStyle = '#f4f6f9'; g.fillRect(0, 0, 760, 170); g.strokeStyle = COL.violet; g.lineWidth = 2.5; g.beginPath(); ys.forEach((y, i) => { const px_ = 40 + xs[i] / X1 * 700, py_ = 150 - (y - lo) / (hi - lo) * 125; i ? g.lineTo(px_, py_) : g.moveTo(px_, py_); }); g.stroke();
+  g.fillStyle = '#4b5670'; g.font = '12px sans-serif'; g.fillText(Math.round(hi) + ' m', 2, 22); g.fillText(Math.round(lo) + ' m', 2, 152); g.fillText('0', 40, 166); g.fillText(fmtD(X1).join(' '), 700, 166);
+  const t0 = start, t1 = goal, xy = q => `x ${Math.round(q[1] * G.px)} m, y ${Math.round(q[0] * G.px)} m`, [ev, eu] = fmtE(route.energy_j), turns = nav.turns, p = currentPlan();
+  const b = p ? timeBudget(p, budgetStart, route.time_h / SOL_H * (budgetBack ? 2 : 1)) : null, tt = x => hhmm(((x % 24) + 24) % 24);
+  const list = turns.length ? turns.map(t => `<li>${T('pc_at', fmtD(t.d).join(' '))}: ${T(t.ang > 0 ? 'navleft' : 'navright')} (${Math.round(Math.abs(t.ang))}°)</li>`).join('') : `<li>${T('pc_straight')}</li>`;
+  const html = `<!doctype html><meta charset="utf-8"><title>${esc(T('pc_title'))}</title><style>body{font:14px/1.5 system-ui,sans-serif;color:#1b2540;margin:24px auto;max-width:800px;padding:0 16px}h1{font-size:22px;margin:0}h2{font-size:15px;margin:18px 0 6px}
+    .sub{color:#4b5670;margin:2px 0 14px}img{width:100%;border-radius:8px;border:1px solid #dde2ea}table{border-collapse:collapse;width:100%}td{padding:5px 8px;border-bottom:1px solid #e6e9ef}td:last-child{text-align:right;font-weight:650}
+    .warn{color:#a1162f;font-weight:650}small{color:#7b869c}@media print{body{margin:0}button{display:none}}</style>
+    <h1>${esc(T('pc_title'))}</h1><p class="sub">${esc(meta.name || '')}${meta.synthetic ? ' · SYNTHETIC' : ''} · ${new Date().toLocaleString()}</p>
+    <img src="${cv.toDataURL('image/png')}" alt=""><img src="${pv.toDataURL('image/png')}" alt="" style="margin-top:8px">
+    <h2>${esc(T('pc_summary'))}</h2><table><tr><td>${esc(T('pc_from'))}</td><td>${xy(t0)}</td></tr><tr><td>${esc(T('pc_to'))}</td><td>${xy(t1)}</td></tr>
+    <tr><td>${esc(T('distance'))}</td><td>${fmtD(route.length_m).join(' ')}</td></tr><tr><td>${esc(T('duration'))}</td><td>${fmtH(route.time_h)}</td></tr><tr><td>${esc(T('energy'))}</td><td>${ev} ${eu}</td></tr>
+    <tr><td>${esc(T('pc_walker'))}</td><td>${walker.massKg} kg · ${walker.powerW} W</td></tr>${shelter ? `<tr><td>${esc(T('shelter'))}</td><td>${xy(shelter)}</td></tr>` : ''}</table>
+    ${b ? `<h2>${esc(T('budgeth'))}</h2><p class="${b.status === 'ok' ? '' : 'warn'}">${esc(T({ ok: 'budgetok', caution: 'budgetcaution', danger: 'budgetdanger' }[b.status]))} · ${esc(T('budgetwalk', tt(b.startH), tt(b.endH)))}${b.sunsetH !== null ? ' · ' + esc(T('budgetsunset', tt(b.sunsetH))) : ''}</p>` : ''}
+    <h2>${esc(T('pc_turns'))}</h2><ol>${list}</ol>
+    ${places.length ? `<h2>${esc(T('placesh'))}</h2><table>${places.map(q => `<tr><td>${esc(q.name)}<br><small>${esc(q.desc)}</small></td><td>${xy([q.r, q.c])}</td></tr>`).join('')}</table>` : ''}
+    <p><small>${esc(T('pc_note'))}</small></p><button onclick="print()">Print</button>`;
+  const w_ = window.open('', '_blank'); if (!w_) { $('msg').textContent = T('pc_popup'); return; } w_.document.write(html); w_.document.close(); setTimeout(() => w_.print(), 400);
+}
+$('printroute').onclick = printCard;
+
+/* ============================== search ============================== */
+const sugg = $('sugg');
+function runQuery(v) {
+  v = v.trim(); const res = [];
+  { // latitude, longitude in degrees: needs a degree sign, 'lat', N/E letters or 3+ decimals on both numbers (otherwise "x, y" in metres wins)
+    const g = v.match(/^(?:lat(?:itude)?\s*)?(-?\d+(?:\.\d+)?)\s*(°)?\s*N?\s*[,; ]\s*(?:lon(?:gitude)?\s*)?(-?\d+(?:\.\d+)?)\s*(°)?\s*E?$/i);
+    if (g && meta.center_lat != null && (g[2] || g[4] || /lat|N|E\s*$/i.test(v) || (/\.\d{3,}/.test(g[1]) && /\.\d{3,}/.test(g[3]))) && Math.abs(+g[1]) <= 90) {
+      const la = +g[1], lo = +g[3], k = Math.PI / 180, n = (la - meta.center_lat) * k * MARS_R, e = (lo - meta.center_lon) * k * MARS_R * Math.cos(meta.center_lat * k);
+      const r = Math.round(G.h / 2 - n / G.px), c = Math.round(G.w / 2 + e / G.px);
+      return r >= 0 && c >= 0 && r < G.h && c < G.w ? [{ label: T('llgo', la.toFixed(4), lo.toFixed(4)), at: [r, c] }] : [{ label: T('outside'), at: [0, 0], none: true }]; } }
+  const m = v.match(/^(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)$/);
+  if (m) res.push({ label: `${T('goto')} x ${m[1]} m, y ${m[2]} m`, at: [Math.round(+m[2] / G.px), Math.round(+m[1] / G.px)] });
+  { const q = v.toLowerCase(); places.filter(p => !q || (p.name + ' ' + p.desc).toLowerCase().includes(q)).slice(0, 8).forEach(p => res.push({ label: p.name + (p.desc ? ' · ' + p.desc.slice(0, 40) : ''), at: [p.r, p.c], color: catColor(p.cat) })); }
+  (meta.flat_sites || []).forEach(s => { if (!v || String(s.rank) === v || /flat|plat/i.test(v)) res.push({ label: T('flatn', s.rank, s.mean_slope_deg), at: [s.row, s.col], color: COL.sky }); });
+  return res.filter(r => r.at[0] >= 0 && r.at[1] >= 0 && r.at[0] < G.h && r.at[1] < G.w);
+}
+function showSugg(list) {
+  sugg.style.display = 'block';
+  sugg.innerHTML = list.length ? list.map((r, i) => `<button role="option" data-i="${i}"><span style="width:10px;height:10px;border-radius:50%;background:${r.color || COL.ink};flex:none"></span>${r.label}</button>`).join('') : `<button disabled style="color:var(--ink-3)">${T('notfound')}</button>`;
+  sugg._list = list;
+}
+$('q').addEventListener('input', e => showSugg(runQuery(e.target.value)));
+$('q').addEventListener('focus', e => showSugg(runQuery(e.target.value)));
+$('q').addEventListener('keydown', e => { if (e.key === 'Enter') { const l = runQuery($('q').value); if (l[0]) go(l[0]); } if (e.key === 'Escape') sugg.style.display = 'none'; });
+sugg.addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) go(sugg._list[+b.dataset.i]); });
+document.addEventListener('click', e => { if (!e.target.closest('.search')) sugg.style.display = 'none'; });
+function go(r) { if (r.none) return; sugg.style.display = 'none'; $('q').blur(); map.flyTo(ll(...r.at), Math.min(1, map.getZoom() + 2), { duration: .6 }); setPlace(r.at); }
+
+/* ============================== 3D view ============================== */
+let THREE, OrbitControls, renderer, scene, camera, controls, mesh, tex, ov,  tex3dDirty = true, raf = 0, exag = 2;
+function composeTexture() {
+  const cv = document.createElement('canvas'); cv.width = G.w; cv.height = G.h; const c = cv.getContext('2d');
+  c.drawImage(layerImgs.hillshade, 0, 0); c.globalCompositeOperation = 'multiply'; c.fillStyle = 'rgb(214,140,100)'; c.fillRect(0, 0, G.w, G.h);
+  c.globalCompositeOperation = 'source-over'; c.globalAlpha = op();
+  for (const n of ['slope', 'roughness', 'hazard']) if (vis[n] && layerImgs[n]) c.drawImage(layerImgs[n], 0, 0);
+  for (const n of ['reach', 'los', 'shadow']) if (safVis[n] && SAF[n]) c.drawImage(SAF[n], 0, 0);
+  return cv;
+}
+async function init3d() {
+  THREE = await import('three'); ({ OrbitControls } = await import('three/addons/OrbitControls.js'));
+  const host = $('three'); const touch = matchMedia('(pointer: coarse)').matches; renderer = new THREE.WebGLRenderer({ antialias: !touch, powerPreference: 'high-performance' }); renderer.setPixelRatio(Math.min(devicePixelRatio, touch ? 1.25 : 2)); host.appendChild(renderer.domElement); /* phones: no MSAA, fewer pixels */
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0xc9d6e3);
+  camera = new THREE.PerspectiveCamera(50, 1, 1, W * 20);
+  const step = Math.max(1, Math.ceil(Math.max(G.w, G.h) / 400)), gw = Math.floor((G.w - 1) / step) + 1, gh = Math.floor((G.h - 1) / step) + 1;
+  const geo = new THREE.BufferGeometry(), pos = new Float32Array(gw * gh * 3), uv = new Float32Array(gw * gh * 2);
+  for (let r = 0; r < gh; r++) for (let c = 0; c < gw; c++) { const i = r * gw + c, rr = r * step, cc = c * step;
+    pos.set([cc * G.px - W / 2, G.dem[rr * G.w + cc] - meta.zmin, rr * G.px - H / 2], i * 3); uv.set([cc / (G.w - 1), 1 - rr / (G.h - 1)], i * 2); }
+  const idx = new Uint32Array((gw - 1) * (gh - 1) * 6); let k = 0;
+  for (let r = 0; r < gh - 1; r++) for (let c = 0; c < gw - 1; c++) { const a = r * gw + c, b = a + 1, d = a + gw, e = d + 1; idx.set([a, d, b, b, d, e], k); k += 6; }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); geo.setIndex(new THREE.BufferAttribute(idx, 1)); geo.computeVertexNormals();
+  tex = new THREE.CanvasTexture(composeTexture()); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ map: tex })); mesh.scale.y = exag; scene.add(mesh); ov = new THREE.Group(); scene.add(ov);
+  scene.add(new THREE.AmbientLight(0xffffff, 1.1)); const sun = new THREE.DirectionalLight(0xfff0e0, 1.4); sun.position.set(-W, W, -H); scene.add(sun);
+  camera.position.set(W * .55, (meta.zmax - meta.zmin) * exag + W * .5, H * .85); controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, (meta.zmax - meta.zmin) * exag * .3, 0); controls.maxPolarAngle = Math.PI * .495; controls.update();
+  $('exbox').innerHTML = `${T('exag')} <span id="exv">${exag}×</span><br><input id="exag" type="range" min="1" max="8" step="0.5" value="${exag}" aria-label="${T('exag')}">`;
+  $('exag').oninput = e => { exag = +e.target.value; mesh.scale.y = exag; set('exv', exag + '×'); draw3dRoute(); };
+  addEventListener('resize', size3d); size3d(); setup3dPicking(); draw3dRoute();
+}
+function size3d() { if (!renderer) return; const r = $('main').getBoundingClientRect(); renderer.setSize(r.width, r.height); camera.aspect = r.width / r.height; camera.updateProjectionMatrix(); }
+const pt3f = (r, c, up = 0) => new THREE.Vector3((c + .5) * G.px - W / 2, (G.dem[Math.min(G.h - 1, Math.max(0, Math.round(r))) * G.w + Math.min(G.w - 1, Math.max(0, Math.round(c)))] - meta.zmin) * exag + up, (r + .5) * G.px - H / 2);
+const pt3 = (r, c, up = 0) => new THREE.Vector3((c + .5) * G.px - W / 2, (G.dem[r * G.w + c] - meta.zmin) * exag + up, (r + .5) * G.px - H / 2);
+const disc = (txt, fill, ring) => { const cv = document.createElement('canvas'); cv.width = cv.height = 96; const c = cv.getContext('2d');
+  c.beginPath(); c.arc(48, 48, 40, 0, 7); if (fill) { c.fillStyle = fill; c.fill(); } c.lineWidth = 9; c.strokeStyle = ring; c.stroke();
+  if (txt) { c.fillStyle = '#fff'; c.font = '700 46px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, 48, 51); }
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; };
+function sprite(tex_, size, anchorBottom) {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex_, depthTest: false, sizeAttenuation: false, transparent: true }));
+  s.scale.set(size, size, 1); s.renderOrder = 20; if (anchorBottom) s.center.set(.5, 0); return s; }
+function clearGroup(g) { for (const o of [...g.children]) { g.remove(o); if (o.geometry) o.geometry.dispose(); if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } } }
+function draw3dRoute() {
+  if (!scene) return; clearGroup(ov); ov.userData.tubes = [];
+  const rad = Math.max(W, H) / 520, vs = viewScale(), tr = rad * vs * lineK;   // tube radius: follows the view (thin at eye level, thin when zoomed in) and the slider
+  if (route && route.path.length > 1) {
+    const every = Math.max(1, Math.ceil(route.path.length / 500)), pts = route.path.filter((_, i) => i % every === 0 || i === route.path.length - 1).map(p => pt3(p[0], p[1], rad * 1.4));
+    const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal'), seg = Math.min(1500, pts.length * 3);
+    for (const [k, col, z] of [[1.9, 0xffffff, 0], [1, 0x6a3fa8, 1]]) {
+      const m = new THREE.Mesh(new THREE.TubeGeometry(curve, seg, tr * k, 8, false), new THREE.MeshBasicMaterial({ color: col, depthWrite: z === 1 })); m.renderOrder = 10 + z; ov.add(m); ov.userData.tubes.push({ m, seg }); }
+    if (nav.on) wipe3d();
+  }
+  [[start, 'A', '#2f9be0'], [goal, 'B', '#6a3fa8']].forEach(([s, lab, col]) => { if (!s) return;
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(tr * 2.2, 14, 10), new THREE.MeshBasicMaterial({ color: new THREE.Color(col) })); dot.position.copy(pt3(...s, rad)); ov.add(dot);
+    const pin = sprite(disc(lab, col, '#ffffff'), .05, true); pin.position.copy(pt3(...s, rad * 3)); ov.add(pin); });
+  places.forEach(p => { const s = sprite(disc((p.name[0] || '?').toUpperCase(), catColor(p.cat), '#ffffff'), .04, true); s.position.copy(pt3(p.r, p.c, rad * 3)); ov.add(s); });
+  if (shelter) { const s = sprite(disc('⌂', '#1b2540', '#f0bf2b'), .05, true); s.position.copy(pt3(...shelter, rad * 3)); ov.add(s); }
+  if (placeRC && mode !== 'walk') { const c = sprite(disc('', null, '#1b2540'), .035, false); c.position.copy(pt3(...placeRC, rad)); ov.add(c); }
+}
+let ringSprite = null;
+function hover3d(rc) {
+  if (!ringSprite) return;
+  if (!rc) { ringSprite.visible = false; $('hover').style.display = 'none'; return; }
+  const i = rc[0] * G.w + rc[1]; ringSprite.visible = true; ringSprite.position.copy(pt3(...rc, Math.max(W, H) / 400));
+  $('hover').style.display = 'block'; set('hover', T('hover', Math.round(rc[1] * G.px), Math.round(rc[0] * G.px), G.dem[i].toFixed(0), G.slope[i].toFixed(1)));
+}
+let dist0 = 0, tubeTimer = 0;
+const viewScale = () => ground ? .025 : Math.min(1.6, Math.max(.12, camera.position.distanceTo(controls.target) / (dist0 || 1)));   // 1 in the default overview, smaller when zoomed in or at eye level
+function setup3dPicking() {
+  dist0 = camera.position.distanceTo(controls.target); controls.addEventListener('end', () => { if (ground) return; clearTimeout(tubeTimer); tubeTimer = setTimeout(draw3dRoute, 120); });                               // click = select (same as 2D); drag = orbit; hover = read-out
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), dom = renderer.domElement; let down = null, q = 0, last = null;
+  ringSprite = sprite(disc('', 'rgba(255,255,255,.25)', '#f0bf2b'), .03, false); ringSprite.visible = false; scene.add(ringSprite);
+  const cellFromEvent = ev => {
+    const r = dom.getBoundingClientRect(); ndc.set((ev.clientX - r.left) / r.width * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, camera); mesh.updateMatrixWorld(true); const hit = ray.intersectObject(mesh, false)[0]; if (!hit) return null;
+    return [Math.min(G.h - 1, Math.max(0, Math.floor((hit.point.z + H / 2) / G.px))), Math.min(G.w - 1, Math.max(0, Math.floor((hit.point.x + W / 2) / G.px)))]; };
+  dom.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, t: performance.now(), b: e.button }; });
+  dom.addEventListener('pointerup', e => { const d = down; down = null; if (!d || d.b !== 0) return;
+    if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 5 || performance.now() - d.t > 600) return;   // it was a drag (orbit/pan), not a click
+    const rc = cellFromEvent(e); if (rc) pickCell(rc); });
+  dom.addEventListener('pointermove', e => { if (e.pointerType === 'touch' || e.buttons) { hover3d(null); return; } last = e;
+    if (!q) q = requestAnimationFrame(() => { q = 0; hover3d(cellFromEvent(last)); }); });
+  dom.addEventListener('pointerleave', () => hover3d(null));
+  dom.style.cursor = 'crosshair';
+}
+function loop() { raf = requestAnimationFrame(loop); if (tex3dDirty) { tex.image = composeTexture(); tex.needsUpdate = true; tex3dDirty = false; } controls.update(); renderer.render(scene, camera); }
+async function showView(v) {
+  const d3 = v === '3d'; $('v2d').setAttribute('aria-pressed', !d3); $('v3d').setAttribute('aria-pressed', d3);
+  $('map').style.display = d3 ? 'none' : 'block'; $('three').style.display = d3 ? 'block' : 'none'; $('hover').style.display = 'none'; $('exbox').style.display = d3 ? 'block' : 'none'; $('gbtn').style.display = d3 ? 'block' : 'none'; $('scale').style.display = d3 ? 'none' : 'block';
+  if (d3) { try { if (!renderer) await init3d(); cancelAnimationFrame(raf); size3d(); loop(); } catch (e) { $('three').innerHTML = `<p style="padding:90px 24px;color:var(--ink)">${T('unavailable')}</p>`; } }
+  else { cancelAnimationFrame(raf); map.invalidateSize(); }
+}
+$('v2d').onclick = () => showView('2d'); $('v3d').onclick = () => showView('3d');
+{ const ex = document.createElement('div'); ex.id = 'exbox'; ex.className = 'float'; $('main').appendChild(ex); }
+
+/* ============================== startup ============================== */
+syncLayers(); renderPlace(); drawUser(); renderEva(); renderBudget(); renderData(); setShelter(null); drawPlaces();
+if (location.hash === '#3d') showView('3d');
+if (location.hash === '#walk') setMode('walk');
+
+/* ---------- guided tour ---------- */
+const TT = makeT('tour');
+{
+  const small = () => innerWidth < 960;
+  const side = s => () => { const a = $('app'); if (small()) { a.dataset.left = s === 'left' ? 'open' : 'closed'; a.dataset.right = s === 'right' ? 'open' : 'closed'; } else { a.dataset[s] = 'open'; } };
+  const goMode = m => () => { side('left')(); setMode(m); };
+  const tourSteps = () => {
+    const S = [
+      { sel: null },
+      { sel: '.search', before: goMode('terrain') },
+      { sel: '.modes', before: goMode('terrain') },
+      { sel: '#layerbox', before: goMode('terrain') },
+      { sel: '#map', before: () => { if (small()) $('app').dataset.left = $('app').dataset.right = 'closed'; } },
+      { sel: '#stopA', before: goMode('walk') },
+      { sel: '#objseg', before: goMode('walk') },
+      { sel: '#mass', before: goMode('walk') },
+      { sel: '#navgo', before: goMode('walk') },
+      { sel: '#whytbl', before: goMode('walk') },
+      { sel: '#p-sol', before: goMode('sol') },
+      { sel: '#p-safety', before: goMode('safety') },
+      { sel: '#s-places', before: side('right') },
+      { sel: '#right', before: side('right') },
+      { sel: '#viewtog', before: () => { if (small()) $('app').dataset.left = $('app').dataset.right = 'closed'; } },
+      { sel: '#clock', before: () => { if (small()) $('app').dataset.left = $('app').dataset.right = 'closed'; } },
+      { sel: '.foot', before: side('left') }
+    ];
+    const txt = T_tour();
+    return S.map((s, k) => Object.assign(s, { title: txt[k][0], text: txt[k][1] }));
+  };
+  const T_tour = () => TT('index');
+  const run = () => startTour(tourSteps(), TT);
+  $('tourbtn').textContent = TT('btn'); $('tourbtn').onclick = run; $('tourq').title = TT('btn'); $('tourq').onclick = run;
+}
+window.__ready = true; window.__dbg = { map, G, walker, setMode, pickPlace: rc => { setMode('terrain'); setPlace(rc); }, get route() { return route; }, pick: (a, b) => { setMode('walk'); start = a; goal = b; drawUser(); compute(++busy); } };
+</script>
+<script>if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
+</body>
+</html>

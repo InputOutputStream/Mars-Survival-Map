@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.coverage
+htmlcov/
+
+*.JP2
+*.jp2
+data/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+
+# Local downloads (HiRISE, MEDA, MOLA, Odyssey, TES, MCS, MCD: hundreds of MB, rebuilt by the scripts).
+# Keep the folder itself.
+/data/*
+!/data/.gitkeep
+
+# NOTE: web/data/ is NOT ignored on purpose. Vercel serves it, so the real output of
+# build_jezero.py (web/data/site/) and build_globe.py (web/data/) must be committed.
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Vercel and Node
+.vercel/
+node_modules/
+.env
+.env.*
+
+# Local packaging
+*.zip

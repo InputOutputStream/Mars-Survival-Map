@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Help with translations, Mars Survival Map</title>
+<style>
+@font-face { font-family: "Public Sans"; src: url(../vendor/fonts/public-sans-latin-wght-normal.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
+:root { --ink:#1b2540; --ink-2:#4b5670; --paper:#eef1f5; --line:#dde2ea; --sky:#2f9be0; --mars:#b8432a; color-scheme: light; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.6 "Public Sans", system-ui, sans-serif; }
+header { background: var(--ink); color: #fff; padding: 26px 20px; border-bottom: 4px solid var(--mars); } header a { color: #cfe6f7; }
+main, header div { max-width: 760px; margin: 0 auto; } main { padding: 22px 20px 60px; }
+h1 { margin: 8px 0 0; font-size: 28px; } h2 { margin: 28px 0 6px; font-size: 19px; }
+code { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 14px; }
+pre { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; overflow: auto; font-size: 13.5px; }
+a { color: var(--sky); font-weight: 600; }
+</style>
+</head>
+<body>
+<header><div><a href="../index.html">Back to the map</a><h1>Help us translate</h1></div></header>
+<main>
+<p>Every language other than English is a <b>machine draft</b> written by the team's assistant, until a speaker has checked it.
+Cameroonian languages (Basaa, Ewondo and others) are the hardest: there are few written technical terms, so a draft is only a starting point.
+If you speak one of these languages, your corrections matter more than anything else on this page.</p>
+
+<h2>How to correct a language</h2>
+<ol>
+<li>Open the file <code>web/lang/&lt;code&gt;.js</code> (for example <code>bas.js</code> for Basaa, <code>ewo.js</code> for Ewondo). Text between quotes is what people read.</li>
+<li>Change the words, never the part before the colon (the key), and keep anything in <code>${...}</code> or <code>{...}</code> exactly as it is: those are numbers filled in by the map.</li>
+<li>When a whole file has been checked by a speaker, change <code>status: 'draft'</code> to <code>status: 'reviewed'</code>. The yellow "draft" note then disappears for that language.</li>
+<li>A string you leave out falls back to the language named in <code>fallback</code> (French for Cameroonian languages, then English), so a partly translated file still works.</li>
+</ol>
+
+<h2>How to add a language</h2>
+<ol>
+<li>Copy <code>web/lang/en.js</code> to <code>web/lang/&lt;code&gt;.js</code> using the language's ISO 639 code, and rename <code>LANGS.en</code> inside it.</li>
+<li>Add one line to <code>web/lang/registry.js</code>: <code>{ code: 'bas', name: 'Ɓasaá' }</code> (add <code>dir: 'rtl'</code> for right-to-left scripts).</li>
+<li>Translate. Reload the map and pick the language in the menu.</li>
+</ol>
+<pre>LANGS.bas = {
+  meta: { name: 'Ɓasaá', status: 'draft', fallback: ['fr', 'en'] },
+  index: { title: '…', mterrain: '…' },   // only what you have translated
+  globe: { title: '…' },
+  common: { langlabel: '…', draftnote: '…', draftlink: '…' }
+};</pre>
+<p>The pages <code>sources.html</code> and the documentation stay in English for now.</p>
+</main>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jezero overview</title>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<style>
+@font-face { font-family: "Public Sans"; src: url(vendor/fonts/public-sans-latin-wght-normal.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Bricolage Grotesque"; src: url(vendor/fonts/bricolage-grotesque-latin-wght-normal.woff2) format("woff2"); font-weight: 200 800; font-display: swap; }
+:root { --violet: #6a3fa8; --sky: #2f9be0; --mars: #b8432a; --ink: #1b2540; --ink-2: #4b5670; --ink-3: #7b869c; --line: #dde2ea; --wash: #f6f8fb;
+  --sans: "Public Sans", system-ui, sans-serif; --display: "Bricolage Grotesque", "Public Sans", system-ui, sans-serif; color-scheme: light; }
+html, body { height: 100%; margin: 0; font: 14px/1.45 var(--sans); color: var(--ink); background: #cfc8c2; }
+#map { position: absolute; inset: 0; background: #cfc8c2; }
+.card { position: absolute; z-index: 1000; left: 12px; top: 12px; width: min(340px, calc(100% - 24px)); background: #fff; border-radius: 16px; box-shadow: 0 2px 14px rgba(27,37,64,.28); padding: 14px 16px; }
+.card h1 { margin: 0 0 4px; font: 700 19px var(--display); } .card p { margin: 0 0 8px; color: var(--ink-2); font-size: 13px; }
+.card small { display: block; color: var(--ink-3); font-size: 11.5px; } .card pre { background: var(--wash); border-radius: 8px; padding: 8px 10px; overflow: auto; font-size: 12px; }
+.card .row { display: flex; gap: 10px; align-items: center; margin-top: 8px; } .card a.back { font-weight: 650; color: var(--violet); text-decoration: none; }
+.win { border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; margin: 6px 0; background: var(--wash); } .win b { display: block; }
+.go { display: inline-block; margin-top: 6px; background: var(--violet); color: #fff; border-radius: 10px; padding: 7px 14px; font-weight: 700; text-decoration: none; }
+#xy { position: absolute; z-index: 1000; left: 12px; bottom: 12px; background: rgba(255,255,255,.94); border-radius: 10px; padding: 5px 12px; font-size: 12.5px; box-shadow: 0 2px 10px rgba(27,37,64,.22); }
+.leaflet-container { font-family: var(--sans); }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="card" id="card"></div><div id="xy" hidden></div>
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="lang/registry.js"></script>
+<script src="common.js"></script>
+<script>loadLanguage();</script>
+<script type="module">
+const T = makeT('overview'), $ = id => document.getElementById(id), D2R = Math.PI / 180, R = 3396190;
+document.title = T('title');
+const card = h => { $('card').innerHTML = h; };
+let ov, sites = [];
+try { ov = await (await fetch('data/overview/overview.json')).json(); } catch (e) {}
+try { sites = await (await fetch('data/sites.json')).json(); } catch (e) {}
+if (!ov) { card(`<h1>${T('title')}</h1><p>${T('nodata')}</p><pre>${T('cmd')}</pre><a class="back" href="index.html">${T('back')}</a>`); throw new Error('no overview'); }
+
+/* equirectangular -> metres from the south-west corner (x shrinks with cos(latitude): one x unit = one metre) */
+const lat0 = (ov.lat_min + ov.lat_max) / 2, kx = R * D2R * Math.cos(lat0 * D2R), ky = R * D2R;
+const X = lon => (lon - ov.lon_min) * kx, Y = lat => (lat - ov.lat_min) * ky;
+const bounds = [[0, 0], [Y(ov.lat_max), X(ov.lon_max)]];
+const map = L.map('map', { crs: L.CRS.Simple, minZoom: -8, maxZoom: 0, zoomSnap: .25, zoomControl: false, attributionControl: false });
+L.imageOverlay('data/overview/hillshade.png', bounds).addTo(map); map.fitBounds(bounds); map.setMaxBounds(L.latLngBounds(bounds).pad(.3));
+L.control.zoom({ position: 'topright' }).addTo(map); L.control.attribution({ prefix: false, position: 'bottomright' }).addTo(map).addAttribution(T('src'));
+
+const sel = id => { const s = sites.find(q => q.id === id); if (!s) return;
+  card(`<h1>${T('title')}</h1><div class="win"><b>${s.name}</b>${T('size', s.width_m, s.height_m, s.px_m.toFixed(1))}${s.synthetic ? `<small style="color:var(--mars)">${T('synth')}</small>` : ''}<a class="go" href="${s.href}">${T('open')}</a></div><div class="row"><a class="back" href="index.html">${T('back')}</a></div>`); };
+const home = () => card(`<h1>${T('title')}</h1><p>${T('lead')}</p><small>${sites.length ? T('win', sites.length) : T('none')}</small><small>${T('size', ov.width * ov.px_x_m, ov.height * ov.px_y_m, ov.px_x_m.toFixed(0))}</small><div class="row"><a class="back" href="index.html">${T('back')}</a></div>`);
+home();
+for (const s of sites) {
+  const cx = X(s.center_lon), cy = Y(s.center_lat), hw = s.width_m / 2, hh = s.height_m / 2;
+  const r = L.rectangle([[cy - hh, cx - hw], [cy + hh, cx + hw]], { color: s.synthetic ? '#7b869c' : '#6a3fa8', weight: 2.5, fillColor: '#6a3fa8', fillOpacity: .18 }).addTo(map);
+  r.bindTooltip(s.name, { sticky: true }); r.on('click', () => sel(s.id)); r.on('dblclick', () => { location.href = s.href; });
+  L.marker([cy, cx], { icon: L.divIcon({ className: '', html: `<div style="width:14px;height:14px;border-radius:50%;background:#6a3fa8;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`, iconSize: [14, 14], iconAnchor: [7, 7] }) }).addTo(map).on('click', () => sel(s.id));
+}
+map.on('click', e => { if (!e.originalEvent.target.closest || !e.originalEvent.target.closest('path')) home(); });
+map.on('mousemove', e => { const lon = ov.lon_min + e.latlng.lng / kx, lat = ov.lat_min + e.latlng.lat / ky; $('xy').hidden = false; $('xy').textContent = `${lat.toFixed(3)}°, ${lon.toFixed(3)}°`; });
+if (sites.length === 1) sel(sites[0].id);
+</script>
+<script>if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
+</body>
+</html>

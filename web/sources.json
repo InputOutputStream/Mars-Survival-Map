@@ -1,0 +1,482 @@
+{
+ "updated": "2026-11-10",
+ "entries": [
+  {
+   "group": "data",
+   "id": "D1",
+   "name": "HiRISE stereo DTM ESP_023524_1985 / ESP_023379_1985, Jezero crater",
+   "publisher": "University of Arizona HiRISE / NASA MRO",
+   "url": "https://www.uahirise.org/dtm/ESP_023524_1985",
+   "file": "https://www.uahirise.org/PDS/DTM/ESP/ORB_023500_023599/ESP_023524_1985_ESP_023379_1985/DTEEC_023524_1985_023379_1985_U01.IMG",
+   "taken": "Elevation raster DTEEC_023524_1985_023379_1985_U01.IMG: 21258 x 8235 pixels, 1.0097 m/px, float32 metres above the Mars 2000 datum, valid range -2694.83 to -2510.19 m. We read only a window over HTTP range requests (the server supports them, checked 2026-11-06).",
+   "use": "Every site-scale number: elevation, slope, roughness, hazard classes, route cost, 3D view.",
+   "status": "Downloaded by the team (window) and header read; page confirms Jezero, centre 18.3°N 77.53°E."
+  },
+  {
+   "group": "data",
+   "id": "D2",
+   "name": "MSR Terrain-Relative-Navigation HiRISE DTM and ortho mosaics, Jezero",
+   "publisher": "USGS Astrogeology",
+   "url": "https://astrogeology.usgs.gov/search/map/mars-sample-return-terrain-relative-navigation-hirise-dtm-mosaic",
+   "taken": "Candidate: 1 m/px DTM mosaic with confidence layer (5.3 GB zip), Jezero lat 18.135 to 18.588, lon 77.057 to 77.380.",
+   "use": "Not used yet. Preferred later for a wider, explicitly Jezero-controlled terrain and an uncertainty layer.",
+   "status": "Page read only."
+  },
+  {
+   "group": "data",
+   "id": "D3",
+   "name": "MGS MOLA MEGDR topography, 4 pixel/degree (global)",
+   "publisher": "NASA PDS Geosciences Node, from the MOLA Team",
+   "url": "https://pds-geosciences.wustl.edu/mgs/mgs-m-mola-5-megdr-l3-v1/mgsl_300x/meg004/",
+   "taken": "720 x 1440 big-endian int16, metres above the GMM3 areoid, 0.25 degree pixels, lat +90 at top, lon 0..360 from the left (checked against the PDS label).",
+   "use": "Globe elevation layer (2 x 2 block mean to the 0.5 degree grid), and pressure and radiation derived from it.",
+   "status": "Label read by the team's assistant; file downloaded by scripts/build_globe.py on your machine (about 2 MB). Replaces the earlier 463 m candidate for the globe.",
+   "file": "https://pds-geosciences.wustl.edu/mgs/mgs-m-mola-5-megdr-l3-v1/mgsl_300x/meg004/megt90n000cb.img"
+  },
+  {
+   "group": "data",
+   "id": "D4",
+   "name": "Mars 2020 MEDA calibrated environmental data (CAL_ATS air temperature, CAL_PS pressure)",
+   "publisher": "NASA PDS Atmospheres Node (NMSU)",
+   "url": "https://atmos.nmsu.edu/PDS/data/PDS4/Mars2020/mars2020_meda/data_calibrated_env/",
+   "taken": "Per-sol CSV files. CAL_ATS: ATS_LOCAL_TEMP1..5 in kelvin. CAL_PS: BAROCAP1..3_PRESSURE in pascal, version 2.0 (reprocessed for drift, 2021-10-29). Units confirmed from the PDS4 labels.",
+   "use": "Air temperature mean and daily swing for the sol planner; pressure baseline.",
+   "status": "Folder listings and sol 1 labels read by the team; sol 100 columns read; sampled sols downloaded by the team."
+  },
+  {
+   "group": "data",
+   "id": "D5",
+   "name": "Odyssey GRS special product: epithermal neutron flux ns_epithermal_020917",
+   "publisher": "NASA PDS Geosciences Node (Feldman et al. 2002, Science 297:75-78)",
+   "url": "https://pds-geosciences.wustl.edu/ody/urn-nasa-pds-odyssey_grs_special/data/",
+   "taken": "259,200 text rows 'lon, lat, flux' (counts/s), one per 0.5 degree cell, lon 0..360. Less flux means more hydrogen. First 25.7 days of mapping only. Rows with flux exactly 0.000 are treated as no data (our reading).",
+   "use": "Globe hydrogen proxy layer epithermal_cps, scored between its 5th and 95th percentile (team choice, written to config/scoring.json by scripts/build_globe.py).",
+   "status": "Label and first rows read by the team's assistant; table downloaded by scripts/build_globe.py on your machine. Not calibrated to water-equivalent hydrogen; seasonal CO2 frost mixes in at high latitude. A full-mission water-equivalent hydrogen map would be better: no verified PDS file found yet.",
+   "file": "https://pds-geosciences.wustl.edu/ody/urn-nasa-pds-odyssey_grs_special/data/ns_epithermal_020917.tab"
+  },
+  {
+   "group": "data",
+   "id": "D6",
+   "name": "Mars Trek MOLA colourised shaded relief tiles",
+   "publisher": "NASA JPL Mars Trek",
+   "url": "https://trek.nasa.gov/tiles/Mars/EQ/Mars_MGS_MOLA_ClrShade_merge_global_463m/1.0.0/default/default028mm/0/0/0.jpg",
+   "taken": "Image tiles, scheme {z}/{row}/{col}.jpg, 2^(z+1) columns by 2^z rows, row 0 at the north.",
+   "use": "Optional global basemap.",
+   "status": "Tiles z0 and z1 opened by the team. Maximum zoom and cross-site (CORS) use untested."
+  },
+  {
+   "group": "data",
+   "id": "D7",
+   "name": "Derived Jezero air temperatures from MEDA ATS, first 700 sols",
+   "publisher": "Hueso, Munguira et al. (Zenodo)",
+   "url": "https://doi.org/10.5281/zenodo.11198655",
+   "taken": "Per-sol CSV of derived temperatures (Fourier fits).",
+   "use": "Candidate to replace the sinusoid in the sol planner.",
+   "status": "Record opened by the team; not used yet."
+  },
+  {
+   "group": "data",
+   "id": "D8",
+   "name": "MEDA surface pressure at Jezero, sols 1 to 414",
+   "publisher": "Finnish Meteorological Institute (B2SHARE)",
+   "url": "https://fmi.b2share.csc.fi/records/axmwh-rjx51",
+   "taken": "Pressure in Pa, 32 files, 67 MB; accuracy under 3.5 Pa.",
+   "use": "Candidate cross-check of the MEDA pressure we compute.",
+   "status": "Page read; not used yet."
+  },
+  {
+   "group": "physics",
+   "id": "P1",
+   "name": "Minetti et al. 2002, Energy cost of walking and running at extreme uphill and downhill slopes",
+   "publisher": "Journal of Applied Physiology 93:1039-1046",
+   "url": "https://doi.org/10.1152/japplphysiol.01177.2001",
+   "taken": "Cw(i) = 280.5 i^5 - 58.7 i^4 - 76.8 i^3 + 51.9 i^2 + 19.6 i + 2.5 J/(kg m), valid for slopes i from -0.45 to +0.45; 10 athletes, treadmill, no load.",
+   "use": "Energy per metre of walking at every slope (physics.py). Slope part scaled by g_Mars/g_Earth. The tests reproduce the paper's Table 2.",
+   "status": "Paper supplied by the team. Earth data: using it on Mars is a hypothesis."
+  },
+  {
+   "group": "physics",
+   "id": "P2",
+   "name": "Cavagna, Willems and Heglund 2000, The role of gravity in human walking",
+   "publisher": "Journal of Physiology 528:657-668",
+   "url": "https://doi.org/10.1111/j.1469-7793.2000.00657.x",
+   "taken": "External mechanical work minimum 0.30 J/(kg m) at 1 g (4.5 km/h) and 0.15 at 0.4 g (2.5 km/h); best pendular recovery speed 5.5, 3.5 and about 6.5 km/h at 1, 0.4 and 1.5 g.",
+   "use": "Flat-ground cost factor 0.75 and the pace of 3.4 km/h (speed proportional to the square root of gravity).",
+   "status": "Paper supplied by the team. Mechanical work, not metabolic; three men; no suit. The DOI is from memory: check it."
+  },
+  {
+   "group": "physics",
+   "id": "P3",
+   "name": "Apollo 16 Time and Motion Study (NASA MSC M72-6)",
+   "publisher": "NASA",
+   "url": "https://ntrs.nasa.gov/api/citations/19730008098/downloads/19730008098.pdf",
+   "taken": "Suited astronaut metabolic power on the Moon: walking at about 3 ft/s, 1112 to 1185 BTU/h (326 to 347 W); carrying 41 lb, up to 2300 BTU/h (674 W).",
+   "use": "Default sustained power (326 W) and a pace cross-check (3 ft/s = 3.3 km/h).",
+   "status": "Report supplied by the team. Several values were damaged in the PDF text: re-check against the page images. It analysed no slope effect."
+  },
+  {
+   "group": "physics",
+   "id": "P4",
+   "name": "Soule and Goldman 1972; Pandolf, Givoni and Goldman 1977, terrain coefficients",
+   "publisher": "Journal of Applied Physiology 32(5):706-708 and 43(4):577-581",
+   "url": "https://en.wikipedia.org/wiki/Pandolf_equation",
+   "taken": "Earth terrain factors: blacktop 1.0, dirt road 1.1, light brush 1.2, heavy brush 1.5, swampy bog 1.8, loose sand 2.1, soft snow 15/25/35 cm 2.5/3.3/4.1.",
+   "use": "Sanity anchor for the rough-ground multiplier (a team hypothesis).",
+   "status": "Values read on Wikipedia; verify in the papers."
+  },
+  {
+   "group": "physics",
+   "id": "P5",
+   "name": "Hassler et al. 2013, Mars' surface radiation environment measured with the MSL RAD",
+   "publisher": "Science",
+   "url": "https://www.swri.org/press-release/swri-scientists-publish-first-radiation-measurements-surface-mars",
+   "taken": "0.67 mSv/day at Gale crater surface (cruise 1.8 mSv/day).",
+   "use": "Radiation baseline for the globe scoring.",
+   "status": "Press summary read."
+  },
+  {
+   "group": "physics",
+   "id": "P6",
+   "name": "Lunar Roving Vehicle design slopes",
+   "publisher": "Jacob et al., LPSC 57 (2026), NASA NTRS",
+   "url": "https://ntrs.nasa.gov/citations/20250011301",
+   "taken": "Design slope 20 to 23° favourable, maximum 25°.",
+   "use": "Echoed by the 20° (hazardous) and 25° (forbidden) hazard limits. Not a Mars walking limit.",
+   "status": "Page read."
+  },
+  {
+   "group": "physics",
+   "id": "P7",
+   "name": "Steepest slope driven by a Mars rover (Opportunity, 32°)",
+   "publisher": "NASA JPL",
+   "url": "https://www.jpl.nasa.gov/news/rover-takes-on-steepest-slope-ever-tried-on-mars",
+   "taken": "32° tilt.",
+   "use": "Hard ceiling for rover-class vehicles.",
+   "status": "Page read."
+  },
+  {
+   "group": "physics",
+   "id": "P8",
+   "name": "Allison and McEwen 2000, areocentric solar coordinates and Mars time recipes (Mars24)",
+   "publisher": "Planetary and Space Science 48:215-235; NASA GISS Mars24",
+   "url": "https://www.giss.nasa.gov/tools/mars24/help/algorithm.html",
+   "taken": "Mars Sol Date from Julian date: MSD = (JD_TT - 2451549.5)/1.0274912517 + 44796.0 - 0.0009626; local mean solar time = MTC + east longitude/15; equation of time and solar longitude Ls from the paper's series (mean anomaly, fictitious mean Sun, 7 planetary perturbation terms); true solar time = mean + EOT.",
+   "use": "The map clock (web/marsclock.mjs): Jezero local true solar time from Earth time.",
+   "status": "Coefficients typed from the paper: compare each one with the NASA GISS Mars24 page. Tests: EOT stays within about ±51 min over a year; the Perseverance touchdown (20:44 UTC, signal delay removed) gives about 15:15 true solar time, mid-afternoon as reported (my memory, verify). Leap seconds: 37 s assumed."
+  },
+  {
+   "group": "physics",
+   "id": "P9",
+   "name": "NASA Mars Fact Sheet (orbit and radiation constants)",
+   "publisher": "NASA NSSDC",
+   "url": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html",
+   "taken": "Solar irradiance 586.2 W/m2, Bond albedo 0.250, eccentricity 0.0935, obliquity 25.19 deg, mean surface temperature about 214 K.",
+   "use": "Energy-balance temperature layer (src/mars_survival/thermal.py) and its sanity check.",
+   "status": "Page read 2026-11-07. Ls of perihelion (251 deg) comes from Allison & McEwen, to verify; emissivity 1 and the 148 K CO2 frost point are our choices, not from that page."
+  },
+  {
+   "group": "assumption",
+   "id": "A1",
+   "name": "Suit and gear mass",
+   "publisher": "Red Circle team",
+   "url": "",
+   "taken": "170 kg",
+   "use": "Unknown for any real Mars suit. User input.",
+   "status": "Team assumption: replace when a source is found."
+  },
+  {
+   "group": "assumption",
+   "id": "A2",
+   "name": "Rough-ground multiplier",
+   "publisher": "Red Circle team",
+   "url": "",
+   "taken": "1 + (roughness / 0.25 m)^2; impassable above 1.5 m",
+   "use": "No Mars source. Earth anchors in P4; HiRISE 1 m/px cannot see boulders.",
+   "status": "Team assumption: replace when a source is found."
+  },
+  {
+   "group": "assumption",
+   "id": "A3",
+   "name": "Hazard class limits",
+   "publisher": "Red Circle team",
+   "url": "",
+   "taken": "slope 10 / 20 / 25°, roughness 0.25 / 0.6 / 1.5 m",
+   "use": "No NASA slip or tip limit for a walking human. 20 and 25° echo P6.",
+   "status": "Team assumption: replace when a source is found."
+  },
+  {
+   "group": "assumption",
+   "id": "A4",
+   "name": "Outdoor window rules",
+   "publisher": "Red Circle team",
+   "url": "",
+   "taken": "sun above 5°, air above -90 °C, dust optical depth below 3",
+   "use": "Not from a NASA suit specification.",
+   "status": "Team assumption: replace when a source is found."
+  },
+  {
+   "group": "assumption",
+   "id": "A5",
+   "name": "Daily temperature shape",
+   "publisher": "Red Circle team",
+   "url": "",
+   "taken": "sine wave peaking at 14 h local solar time",
+   "use": "Simplification; mean and swing come from D4.",
+   "status": "Team assumption: replace when a source is found."
+  },
+  {
+   "group": "assumption",
+   "id": "A6",
+   "name": "Gravity scaling of the slope cost",
+   "publisher": "Red Circle team",
+   "url": "",
+   "taken": "slope part x g_Mars/g_Earth (0.378)",
+   "use": "Hypothesis; flat part uses P2. Not tested on Mars or with a suit.",
+   "status": "Team assumption: replace when a source is found."
+  },
+  {
+   "group": "assumption",
+   "id": "A7",
+   "name": "Flat-site tolerance",
+   "publisher": "Red Circle team",
+   "url": "",
+   "taken": "A disc 120 m across counts as flat if at most 5% of it exceeds 5° slope or 0.25 m roughness",
+   "use": "With zero tolerance the first real Jezero build found no flat site at all. No NASA landing-site rule is used; replace with one.",
+   "status": "Team assumption."
+  },
+  {
+   "group": "assumption",
+   "id": "A8",
+   "name": "Globe: partial scoring and thresholds",
+   "publisher": "Red Circle team",
+   "url": "",
+   "taken": "Cells are scored when the measured or derived layers carry at least 30% of the total weight (--min-coverage 0.3). Only elevation and epithermal flux are measured; pressure and radiation come from elevation.",
+   "use": "Without this the real globe would be empty. Pressure and radiation follow elevation, so the score mostly says 'low and hydrogen-rich'. Every cell's coverage is shown.",
+   "status": "Team assumption: add temperature, thermal inertia, rocks and slope layers, then raise the threshold."
+  },
+  {
+   "group": "assumption",
+   "id": "A9",
+   "name": "Globe temperature processing",
+   "publisher": "Red Circle team",
+   "url": "",
+   "taken": "Median over Mars years; daily mean = (T03 + T15)/2; swing = T15 - T03; values outside 130-320 K dropped; seasons weighted by duration; 75% of the year required; 5 degree nodes treated as points and interpolated",
+   "use": "The two local times only approximate the daily mean and the swing (the swing is smaller than the true max minus min). Polar and winter gaps stay empty.",
+   "status": "Team assumptions. The energy-balance model (src/mars_survival/thermal.py) is kept only as a cross-check."
+  },
+  {
+   "group": "assumption",
+   "id": "A10",
+   "name": "Thermal inertia scoring ramp",
+   "publisher": "Red Circle team",
+   "url": "",
+   "taken": "score 0 at 100 tiu, 1 at 300 tiu; night map; weights habitat 0.5, landing 1.5",
+   "use": "No sourced engineering limit yet (landing-site workshop criteria are a candidate). Very high values (bare rock) are not penalised.",
+   "status": "Team assumption."
+  },
+  {
+   "group": "assumption",
+   "id": "A11",
+   "name": "Dust layer processing",
+   "publisher": "Red Circle team",
+   "url": "",
+   "taken": "Annual mean of every sol, median over Mars years 28 to 34 (two of them global-storm years), 3 degree nodes treated as points, no use of the reliability index",
+   "use": "Gives a typical opacity, not the storm-season worst case. A seasonal or 90th-percentile measure would suit solar-power planning better.",
+   "status": "Team assumption."
+  },
+  {
+   "group": "software",
+   "id": "S1",
+   "name": "Leaflet 1.9.4",
+   "publisher": "",
+   "url": "https://leafletjs.com",
+   "taken": "",
+   "use": "2D map",
+   "status": "Licence: BSD-2-Clause"
+  },
+  {
+   "group": "software",
+   "id": "S2",
+   "name": "three.js r160",
+   "publisher": "",
+   "url": "https://threejs.org",
+   "taken": "",
+   "use": "3D terrain",
+   "status": "Licence: MIT"
+  },
+  {
+   "group": "software",
+   "id": "S3",
+   "name": "Public Sans (variable)",
+   "publisher": "",
+   "url": "https://github.com/uswds/public-sans",
+   "taken": "",
+   "use": "Interface typeface (US Web Design System)",
+   "status": "Licence: SIL OFL 1.1"
+  },
+  {
+   "group": "software",
+   "id": "S4",
+   "name": "Bricolage Grotesque (variable)",
+   "publisher": "",
+   "url": "https://github.com/ateliertriay/bricolage",
+   "taken": "",
+   "use": "Brand and figures typeface",
+   "status": "Licence: SIL OFL 1.1"
+  },
+  {
+   "group": "software",
+   "id": "S5",
+   "name": "NumPy, Pillow, Requests",
+   "publisher": "",
+   "url": "https://numpy.org",
+   "taken": "",
+   "use": "Raster maths, images, polite downloads",
+   "status": "Licence: BSD / HPND / Apache-2.0"
+  },
+  {
+   "group": "data",
+   "id": "D9",
+   "name": "MGS TES derived thermal inertia maps (Putzig & Mellon 2007)",
+   "publisher": "NASA PDS Geosciences Node (Putzig, Mellon, Heet, Ward; V1.0, 2009)",
+   "url": "https://pds-geosciences.wustl.edu/missions/mgs/tes-timap.html",
+   "file": "https://pds-geosciences.wustl.edu/mgs/mgs-m-tes-5-timap-v1/mgst_9001/data/global_ti_night_2007.img",
+   "taken": "3600 x 7200 big-endian int16, 20 pixel/degree, lon -180..180, units J m-2 K-1 s-1/2; derived range 5 to 5000. Night map used. Label, readme and datainfo read by the team's assistant; the label states no scaling or missing value, so raw integers are taken as tiu and values outside 5..5000 as no data.",
+   "use": "Globe layer thermal_inertia_tiu (loose dust versus firm ground), scored 100 to 300 tiu.",
+   "status": "Downloaded by scripts/build_globe.py on your machine (52 MB). The script warns if the median is outside 50 to 800 tiu."
+  },
+  {
+   "group": "data",
+   "id": "D10",
+   "name": "MCS surface temperatures corrected to 03:00 and 15:00 LTST",
+   "publisher": "Wang & Jin 2025 (Shanghai Astronomical Observatory), from NASA MRO Mars Climate Sounder data; Zenodo",
+   "url": "https://zenodo.org/records/17947556",
+   "file": "https://zenodo.org/records/17947556/files/MCS_tsurf_corrected.nc?download=1",
+   "taken": "MCS_tsurf_corrected.nc (14.9 MB, md5 921ebf89ba5f1ac35d89d62f83369c27, CC BY 4.0): tsurf_correct[MY 28..37, Ls 0..350 step 10, ltst 3 and 15, Lat -85..90 step 5, Lon -180..175 step 5] in K; 59% NaN; raw range 112.7 to 355.7 K.",
+   "use": "Globe layers temp_mean_k and temp_diurnal_k (measured, replaces the energy-balance stand-in).",
+   "status": "Downloaded and inspected by the team on their machine (layout above). Associated paper (JGR 2025) not read yet: check the correction method and whether values are bin centres or edges."
+  },
+  {
+   "group": "data",
+   "id": "D11",
+   "name": "Mars Climate Database dust climatology: column dust optical depth maps, Mars Years 24 to 36",
+   "publisher": "Montabone, Forget, Millour et al. (LMD, Open University, SSI); from NASA MRO MCS observations",
+   "url": "https://www-mars.lmd.jussieu.fr/mars/dust_climatology/",
+   "file": "https://www-mars.lmd.jussieu.fr/mars/dust_climatology/dataset_v2/dustscenario_MY29_v2-0.nc",
+   "taken": "dustscenario_MYxx kriged daily maps (NetCDF, about 55 MB per Mars year). Layout checked on MY29 by the team: cdodtot[Time 669, latitude 60 (88.5 to -88.5 step 3), longitude 120 (-180 to 177 step 3)], 9.3 micron absorption column dust optical depth of the total column; cdod610 (normalised to 610 Pa) and cdodrel (reliability) also present. Visible equivalent = x 2.6 (source page rule). Global attributes confirm: publicly available, open access, CC BY-SA 3.0, no warranty.",
+   "use": "Globe layer dust_tau: annual mean per Mars year, median over MY28 to MY34 by default.",
+   "status": "Downloaded and inspected by the team (MY29, 57.8 MB). Loader written against that layout. Licence CC BY-SA 3.0: credit, and share derived data under the same licence. Thresholds for the score are the 5th and 95th percentile of the result (team choice)."
+  },
+  {
+   "group": "data",
+   "id": "D12",
+   "name": "EMARS: Ensemble Mars Atmosphere Reanalysis System v1.0 (winds, temperature, pressure, dust)",
+   "publisher": "Greybush et al. 2019, Scientific Data; Penn State Data Commons",
+   "url": "https://doi.org/10.18113/D3W375",
+   "file": "ftp://ftp.pasda.psu.edu/pub/commons/meteorology/greybush/emars-1p0/data",
+   "taken": "NetCDF, hourly output on a 6 x 5 degree grid with 28 levels, MY24 Ls103 to MY33 Ls105 (TES and MCS assimilated); files of 1 to 5 GB, about 2 TB in all. Variables include U, V, T, ps, surface temperature, surface stress, dust opacity.",
+   "use": "Candidate for a wind layer. Not used: the volume (about 2 TB, 1 to 5 GB per file) is out of reach on our connection.",
+   "status": "Paper read by the team's assistant. Described as publicly accessible, no login or licence stated. Reanalysis (model pulled towards observations), not a measurement."
+  },
+  {
+   "group": "physics",
+   "id": "P10",
+   "name": "Apollo 15-17 PLSS (portable life support system) consumables",
+   "publisher": "Wikipedia, summarising NASA documents (secondary; primary: NASA ALSJ, Apollo Flight PLSS)",
+   "url": "https://en.wikipedia.org/wiki/Primary_life_support_system",
+   "taken": "Design EVA duration: 4 h (Apollo 11-14) and 8 h (Apollo 15-17); battery 390 Wh, cooling water 5.2 L, LiOH 1.42 kg for the J-missions.",
+   "use": "Suit autonomy (8 h default) of the return-to-shelter calculation.",
+   "status": "Page read. Secondary source: check the primary NASA ALSJ document (history.nasa.gov/alsj/ALSJ-FlightPLSS.pdf) before publication."
+  },
+  {
+   "group": "physics",
+   "id": "P11",
+   "name": "NASA TN D-7883, metabolic expenditures for Apollo lunar surface EVA (Table I)",
+   "publisher": "NASA (hosted by the Apollo Lunar Surface Journal)",
+   "url": "https://www.nasa.gov/wp-content/uploads/static/history/alsj/tnD7883Metabolic.pdf",
+   "taken": "Mean total metabolic rate of the listed Apollo EVAs: 930 Btu/h (980 kJ/h) = 272.6 W. Apollo 15-17 individual EVAs: 780 to 1100 Btu/h.",
+   "use": "Energy budget of the return-to-shelter calculation (mean metabolic rate x usable walking time).",
+   "status": "Table read. Measured on the Moon, so a hypothesis on Mars."
+  },
+  {
+   "group": "physics",
+   "id": "P12",
+   "name": "Apollo Lunar Roving Vehicle: greatest range from the lunar module",
+   "publisher": "NASA NSSDC",
+   "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/apollo_lrv.html",
+   "taken": "Greatest range from the LM: 5.0 km (Apollo 15), 4.5 km (Apollo 16), 7.6 km (Apollo 17).",
+   "use": "Comparison line shown beside the computed reach. Not an input.",
+   "status": "Page read."
+  },
+  {
+   "group": "physics",
+   "id": "P13",
+   "name": "Mars Regional Navigation Satellite System (in-situ navigation and timing at a human Mars landing site)",
+   "publisher": "NASA NTRS 20210008406",
+   "url": "https://ntrs.nasa.gov/citations/20210008406",
+   "taken": "Concept: relay orbiters broadcast GPS-like ranging signals; relative positioning by differencing two ranges is reported 200 to 400 times more accurate than absolute positioning (simulation).",
+   "use": "Background for the position-sync idea (docs/SYNC_IDEA.md). Not used in the app.",
+   "status": "Abstract read."
+  },
+  {
+   "group": "assumption",
+   "id": "A12",
+   "name": "Reserve kept on the walking time",
+   "publisher": "Red Circle team",
+   "url": "",
+   "taken": "25% of the suit autonomy is kept unspent (adjustable 0 to 50%).",
+   "use": "Round-trip limit = autonomy x (1 - reserve). No NASA value was found for Apollo walk-back margins.",
+   "status": "Team assumption."
+  },
+  {
+   "group": "assumption",
+   "id": "A13",
+   "name": "Mean Apollo metabolic rate as the sustainable walking energy",
+   "publisher": "Red Circle team",
+   "url": "",
+   "taken": "Round-trip walking energy (Minetti model) must stay under 272.6 W x usable time. Time and energy limits are both applied; the stricter one is reported.",
+   "use": "Return-to-shelter reach.",
+   "status": "Team assumption."
+  },
+  {
+   "group": "assumption",
+   "id": "A14",
+   "name": "Antenna heights and radio line of sight",
+   "publisher": "Red Circle team",
+   "url": "",
+   "taken": "Shelter antenna 3 m, suit antenna 1.8 m above ground (adjustable). Straight line with Mars curvature (radius 3389.5 km); no atmosphere, no antenna pattern, no radio frequency.",
+   "use": "Line-of-sight layer. Geometry only, not a link budget.",
+   "status": "Team assumption."
+  },
+  {
+   "group": "assumption",
+   "id": "A15",
+   "name": "Shadow and time-budget model",
+   "publisher": "Red Circle team",
+   "url": "",
+   "taken": "Shadows: ray march along the sun azimuth on the DTM (no sky light, no cast shadow from beyond the window). Time budget: hourly sun elevation and temperature from the Sun plan (simplified sinusoid fed by MEDA); sunset = sun below 0 degrees; caution below the planner minimum sun elevation (5 degrees); cold = below the planner limit.",
+   "use": "Time-budget card and shadow layer.",
+   "status": "Team assumption on simplified models."
+  },
+  {
+   "group": "physics",
+   "id": "P14",
+   "name": "Mars 2020 Science Investigation CTX DEM Mosaic",
+   "publisher": "USGS Astrogeology Science Center (F. Calef, 2021), from Mars Reconnaissance Orbiter CTX stereo",
+   "url": "https://planetarymaps.usgs.gov/mosaic/mars2020_trn/CTX/ScienceInvestigationMaps_JPL/M20_JezeroCrater_CTXDEM_20m.tif",
+   "taken": "20 m/px GeoTIFF (87 MB), lat 17.58 to 19.29, lon 76.99 to 78.58 (whole Jezero crater region). Product page: https://astrogeology.usgs.gov/search/map/mars_2020_science_investigation_ctx_dem_mosaic. Public domain; the page asks to cite the authors (Calef 2021; Mangold et al. 2021, Science, doi:10.1126/science.abl4051).",
+   "use": "Overview level of the map (overview.html): hillshade of the whole crater with the 1 m detail windows drawn on it. Not used for routing or hazards.",
+   "status": "Real data. Vertical datum not named on the page (localised to MOLA); only relative relief is shown."
+  },
+  {
+   "group": "physics",
+   "id": "P15",
+   "name": "HiRISE orthoimages of the Jezero stereo pair (UA/HiRISE)",
+   "publisher": "University of Arizona HiRISE (NASA/JPL MRO)",
+   "url": "https://www.uahirise.org/PDS/DTM/ESP/ORB_023500_023599/ESP_023524_1985_ESP_023379_1985/ESP_023524_1985_RED_A_01_ORTHO.JP2",
+   "taken": "Window of the orthorectified RED image (candidates on https://www.uahirise.org/dtm/ESP_023524_1985: RED_A 766 MB, RED_C 60 MB). Measured with scripts/fetch_ortho_window.py --inspect on RED_A: 32938 x 85030 px, pixel 0.2524 m, equirectangular Mars, central meridian 77.53 deg, sphere radius 3 394 839.8 m (written in the file).",
+   "use": "Optional \"Photo\" layer (up to 0.25 m/px) to see boulders and texture. Picture only: never used for slope, hazard or routes.",
+   "status": "Resolution verified (0.25 m/px). Co-registration with the DTM not yet checked on the map: compare the photo with the hillshade."
+  }
+ ]
+}

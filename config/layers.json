@@ -1,0 +1,15 @@
+{
+  "_comment": "Maps each raw layer to a local raster (relative to the repository root). Missing files are ignored. scale/offset: value = raw*scale + offset. valid_range: out-of-range values -> NaN. assume_geographic: force the Mars 2000 geographic CRS if GDAL cannot read the product's CRS.",
+  "grid": { "res_deg": 0.5 },
+  "layers": {
+    "elevation_m":           { "file": "data/files/mola_elevation.tif",   "scale": 1.0, "nodata": null, "valid_range": [-9000, 22000] },
+    "slope_deg":             { "file": "data/files/slope_deg.tif",        "valid_range": [0, 90] },
+    "water_ice_depth_m":     { "file": "data/files/swim_ice_depth_m.tif", "valid_range": [0, 100] },
+    "weh_wt_pct":            { "file": "data/files/gr_weh_pct.tif",       "valid_range": [0, 100] },
+    "temp_mean_k":           { "file": "data/files/temp_mean_k.tif",      "valid_range": [100, 330] },
+    "temp_diurnal_k":        { "file": "data/files/temp_diurnal_k.tif",   "valid_range": [0, 200] },
+    "rock_abundance_frac":   { "file": "data/files/rock_abundance.tif",   "valid_range": [0, 1] },
+    "dust_tau":              { "file": "data/files/dust_tau.tif",         "valid_range": [0, 10] },
+    "resource_minerals_idx": { "file": "data/files/minerals_index.tif",   "valid_range": [0, 1] }
+  }
+}
