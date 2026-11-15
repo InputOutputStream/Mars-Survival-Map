@@ -5,11 +5,11 @@ Project of the Red Circle team for NASA Space Apps 2026, challenge "Interplaneta
 
 Three levels:
 
-- **Site** (`web/index.html`): one place a few km wide, at metre resolution. First real site: **Jezero crater**.
+- **Site** (`web/index.html`): one place a few km wide, at 4 m per pixel (optional 1 m window and 0.25 m photo layer). First real site: **Jezero crater**.
   Slope, roughness, hazard classes, least-energy routes, flat sites, elevation profile, outing planner
   (sun and temperature), 2D and 3D views, Earth / Jezero clock.
 - **Overview** (`web/overview.html`): the whole Jezero region at 20 m/px with the detail windows drawn on it; click one to open it.
-- **Globe** (`web/globe.html`): global screening on a ~30 km grid, same layout and palette. Real layers: MOLA elevation
+- **Planet map** (`web/globe.html`): planet-wide screening on a 0.5° (~30 km) grid, same layout and palette. Real layers: MOLA elevation
   and Odyssey neutron flux (a hydrogen proxy); thermal inertia is real (MGS TES); mean temperature is our own energy-balance model (latitude only, labelled "Physics model"); the rest is absent or derived from elevation (see section 6).
 
 > **Team rule.** Data must be openly downloadable (no login, no paywall). Measurements are preferred; models and reanalyses
@@ -24,18 +24,18 @@ Three levels:
 ```
 mars-survival-map/
 ├── README.md, pyproject.toml, requirements.txt, vercel.json
-├── config/                      layers.json (globe), scoring.example.json
+├── config/                      layers.json (planet map), scoring.example.json
 ├── src/mars_survival/
 │   ├── pds3.py                  reads a remote PDS3 DTM with HTTP Range requests (a window only, not 130 MB)
 │   ├── physics.py               energy cost of walking (Minetti 2002), Mars gravity scaling (Cavagna 2000)
-│   ├── traverse.py              walker (mass, power), roughness multiplier, Dijkstra routing on energy
+│   ├── traverse.py              walker (mass, power), roughness multiplier, A* routing on energy
 │   ├── site.py                  slope, roughness, hazard, flat sites, web exports (.bin, PNG, site.json)
-│   ├── eva.py                   exact sun geometry + outing windows (temperature = sinusoid fed by MEDA)
+│   ├── eva.py                   computed sun geometry + outing windows (temperature = sinusoid fed by MEDA)
 │   ├── cli.py                   commands: demo, site-demo, site, score, sensitivity, scrape, rasterize, serve
 │   ├── thermal.py               energy-balance temperature (feeds the planet-map temperature layer)
 │   ├── globe_data.py            parsers for the MOLA, Odyssey and TES thermal inertia files
 │   ├── overview.py, photo.py    overview level (CTX DEM, detail-window list) and photo level (HiRISE orthoimage crop)
-│   ├── schema.py, rasterize.py, export.py, scraper.py, demo.py     globe pipeline
+│   ├── schema.py, rasterize.py, export.py, scraper.py, demo.py     planet-map pipeline
 ├── scripts/                     real-data pipeline for Jezero (see section 3)
 │   ├── fetch_dtm_window.py      HiRISE DTM: downloads a window -> data/jezero/dem.npy + dem.json
 │   ├── fetch_meda.py            MEDA (CAL_ATS, CAL_PS): per-sol files -> data/meda/
@@ -47,13 +47,14 @@ mars-survival-map/
 │   └── make_report.py           web/sources.json -> docs/ANALYSIS_REPORT.md
 ├── web/                         static site, served as is (Vercel)
 │   ├── index.html               THE MAP: left sidebar (navigation), map, right sidebar (details)
-│   ├── globe.html               globe viewer (same layout and palette as the map)
+│   ├── globe.html               planet-map viewer (same layout and palette as the map)
 │   ├── sources.html, sources.json   every source, assumption and piece of software
 │   ├── route.mjs, route.worker.js   energy routing (A*, parity tested under Node) and the Web Worker that runs it off the main thread
 │   ├── survival.mjs             reach, radio line of sight, shadows, time budget
 │   ├── overview.html, tour.js, sw.js, lang/   overview page, tutorial tour, offline service worker, languages (en, fr, ewo)
 │   ├── marsclock.mjs            Mars time from Earth time (Allison & McEwen 2000)
 │   ├── common.js, basemaps.json
+│   ├── favicon.ico, icons/, site.webmanifest   site icon (AI-generated artwork)
 │   ├── vendor/                  Leaflet, three.js, fonts (Public Sans, Bricolage Grotesque): works offline
 │   └── data/site/               output of build_jezero.py (commit it for deployment)
 ├── tests/                       pytest + Node scripts (routing parity, Mars clock, survival tools)
@@ -65,14 +66,14 @@ mars-survival-map/
 
 ## 2. Installation
 
-Python 3.10+, Node 18+ (only for the parity tests).
+Python 3.10+ (developed on 3.12), Node 18+ (only for the parity tests).
 
 ```bash
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
-pip install -r requirements.txt            # same as: pip install -e ".[geo,dev]" (installs the project itself, netCDF4, rasterio, pytest)
+pip install -r requirements.txt            # same as: pip install -e ".[geo,dev]" (installs the project itself, rasterio, pytest)
 ```
 
-`rasterio` is only needed for `rasterize` (globe) and GeoTIFF export. If the package is not installed, prefix commands
+`rasterio` is only needed for `rasterize` (planet map) and GeoTIFF export. If the package is not installed, prefix commands
 with `PYTHONPATH=src`.
 
 ---
@@ -84,9 +85,9 @@ with `PYTHONPATH=src`.
 DTM="https://www.uahirise.org/PDS/DTM/ESP/ORB_023500_023599/ESP_023524_1985_ESP_023379_1985/DTEEC_023524_1985_023379_1985_U01.IMG"
 ORTHO="https://www.uahirise.org/PDS/DTM/ESP/ORB_023500_023599/ESP_023524_1985_ESP_023379_1985/ESP_023524_1985_RED_A_01_ORTHO.JP2"    # photo, 0.2524 m/px (checked with --inspect)
 
-# 1. HiRISE DTM DTEEC_023524_1985_023379_1985_U01 (1.0097 m/px, centred on Jezero), 6 km window
+# 1. HiRISE DTM DTEEC_023524_1985_023379_1985_U01 (1.0097 m/px, centred on Jezero), 4 km window
 python scripts/fetch_dtm_window.py "$DTM" \
-  --lat 18.44 --lon 77.52 --size-m 6000 --out data/jezero
+  --lat 18.44 --lon 77.52 --size-m 4000 --out data/jezero
 #    (the DTM covers lat 18.16-18.52, lon 77.453-77.598; the point must lie inside it)
 #    (add --inspect to print the PDS3 label if something goes wrong)
 
@@ -96,7 +97,7 @@ python scripts/fetch_meda.py --sols 1 1800 --every 30 --out data/meda
 # 3. Mean temperature and day/night swing
 python scripts/analyse_meda.py data/meda --out data/meda_jezero.json
 
-# 4. Build: slope, roughness, hazard, routes, flat sites, outing plan
+# 4. Build: slope, roughness, hazard, flat sites, outing plan
 python scripts/build_jezero.py            # writes web/data/site/ and provenance.json
 
 # 5. View the result
@@ -118,7 +119,7 @@ in `web/data/sites/<id>/` (the default `web/data/site/` is `jezero`).
 ```bash
 python scripts/build_overview.py            # downloads the 87 MB CTX DEM once, writes web/data/overview/ and web/data/sites.json
 # add another detail window: fetch + build into its own folder, then refresh the list
-python scripts/fetch_dtm_window.py "$DTM" --lat .. --lon .. --size-m 6000 --out data/<id>
+python scripts/fetch_dtm_window.py "$DTM" --lat .. --lon .. --size-m 4000 --out data/<id>
 python scripts/build_jezero.py --dem data/<id>/dem.npy --meta data/<id>/dem.json --out web/data/sites/<id>
 python scripts/build_overview.py --sites-only
 ```
@@ -137,9 +138,9 @@ Elevation is never finer than the 1 m HiRISE DTM, so the tiers are real, not int
 | 0.25 m photo (a picture, not elevation) | HiRISE orthoimage (P15) | `fetch_ortho_window.py "$ORTHO" --inspect` (check its resolution!), then `fetch_ortho_window.py "$ORTHO" --site-dir web/data/sites/jezero-1m` |
 
 The map shows a "Detail level" switcher when several windows cover the same place, and a "Photo" layer when a window has `photo.jpg`.
-A 1 m window of 1500 x 1500 pixels (2.25 million cells) makes routing in the browser slower: test it on the machine you will demo on.
+A 1 m window of 1500 x 1500 pixels (2.25 million cells) makes routing in the browser slower.
 
-## 6. Build the real globe
+## 6. Build the real planet map
 
 ```bash
 python scripts/build_globe.py             # downloads about 60 MB into data/globe/, scores, writes web/data/
@@ -162,7 +163,7 @@ latitudes with care.
 
 ```bash
 python -m mars_survival site-demo         # made-up terrain, red banner "Synthetic terrain. Not Mars data."
-python -m mars_survival demo              # synthetic globe
+python -m mars_survival demo              # synthetic planet map
 ```
 
 Draw no scientific conclusion from these demos.
@@ -197,7 +198,7 @@ python scripts/fetch_dtm_window.py "$DTM" \
   --lat 18.44 --lon 77.52 --size-m 4000 --out data/jezero    # 1a: elevation window (add --inspect to print the label)
 python scripts/fetch_meda.py --sols 1 1800 --every 30 --out data/meda       # 1b: real weather
 python scripts/analyse_meda.py data/meda --out data/meda_jezero.json
-python scripts/build_jezero.py                             # -> web/data/site/ (slope, roughness, hazard, routes, flat sites, sun plan)
+python scripts/build_jezero.py                             # -> web/data/site/ (slope, roughness, hazard, flat sites, sun plan)
 
 # --- 2. Overview of the whole crater (adds overview.html and the detail-window list) ---------------------------------
 python scripts/build_overview.py                           # downloads the 87 MB CTX DEM once -> web/data/overview/, web/data/sites.json
@@ -210,7 +211,7 @@ python scripts/fetch_ortho_window.py "$ORTHO" --site-dir web/data/sites/jezero-1
 #   if it stops with "opj_decode() failed" (a cut transfer): re-run it (it retries each strip), or download once with  curl -C - -O "$ORTHO"  and pass the local .JP2 file instead of "$ORTHO"
 python scripts/build_overview.py --sites-only              # refresh web/data/sites.json after adding or removing a window
 
-# --- 4. Globe: global screening (adds globe.html layers; about 60 MB) -------------------------------------------------
+# --- 4. Planet map: planet-wide screening (adds globe.html layers; about 60 MB) -------------------------------------
 python scripts/build_globe.py                              # --min-coverage 0.3 default
 
 # --- 5. Look at it ----------------------------------------------------------------------------------------------------
@@ -232,7 +233,7 @@ python -m mars_survival site-demo
 python -m mars_survival demo
 ```
 
-What each step turns on: step 1 gives the site map with every tool (terrain, routes, safety, time budget, walker, 3D, saved places); step 2 the overview page; step 3 the detail levels and photo; step 4 the globe. Steps 2 to 4 are independent of each other; step 1 is needed before 3.
+What each step turns on: step 1 gives the site map with every tool (terrain, routes, safety, time budget, walker, 3D, saved places); step 2 the overview page; step 3 the detail levels and photo; step 4 the planet map. Steps 2 to 4 are independent of each other; step 1 is needed before 3.
 
 ## 9. What the map computes
 
@@ -242,14 +243,14 @@ What each step turns on: step 1 gives the site map with every tool (terrain, rou
 | Slope, roughness | finite differences on the DTM; roughness = local standard deviation of elevation after removing the fitted slope plane (60 m window) | Computed from NASA data |
 | Walking cost | Minetti 2002 (Earth); slope part × g_Mars/g_Earth, flat part × 0.75 (Cavagna 2000) | Physics model, **hypothesis on Mars** |
 | Walking pace | 3.4 km/h = 5.5 km/h × √(g_Mars/g_Earth) | Physics model |
-| Suit power | 326 W (Apollo 16 suit, on the Moon); mass 170 kg | Assumptions (adjustable in the interface) |
+| Suit power | walking: 326 W (Apollo 16 suit, on the Moon); mass 170 kg. The return-to-shelter limit uses 272.6 W mean (Apollo 15-17 PLSS), a separate figure | Assumptions (adjustable in the interface) |
 | Rough ground | cost × (1 + (roughness / 0.25 m)²), impassable above 1.5 m | **Team hypothesis**, no NASA source |
 | Hazard classes | slope 10 / 20 / 25°, roughness 0.25 / 0.6 / 1.5 m | Team assumptions (20° and 25° echo Lunar Roving Vehicle slopes) |
 | Flat sites | disc 120 m across (60 m radius); at most 5% outside the limits (≤ 5°, ≤ 0.25 m) | Team assumption |
 | Return to shelter | one-to-all least-energy fields out and back; limits: time = autonomy × (1 − reserve), energy = 272.6 W × that time | Apollo data (P10, P11) + **team assumptions** (A12, A13) |
 | Radio line of sight | straight line, Mars curvature, antennas 3 m and 1.8 m | Geometry + team assumption (A14) |
 | Shadows, time budget | ray march along the sun azimuth; hourly sun and temperature of the Sun plan | Physics model + team assumption (A15) |
-| Sun | exact geometry (declination, hour angle) | Physics model |
+| Sun | computed geometry (declination, hour angle) | Physics model |
 | Air temperature | mean and day/night swing from MEDA; sinusoidal shape, peak at 14:00 | NASA data + simplification |
 | Clock | Earth time (your device) and Jezero local true solar time (Mars24 algorithm, equation of time included) | NASA GISS model |
 
@@ -257,8 +258,7 @@ Each source in full (name, URL, data taken, use, status) is in `web/sources.json
 The assumptions are discussed in the headers of `src/mars_survival/traverse.py` and `physics.py`.
 
 **Known limits.** The DTM (1 m native, 4 m in the current Jezero build) cannot see boulders, so roughness is underestimated. The MEDA pressure channels disagree
-by ~9 Pa (unexplained). Cavagna's cost is mechanical, not metabolic. The site calculation has no cast shadows, radio
-link, consumables or radiation. Radiation is only derived from elevation (one MSL RAD anchor). See `docs/SOURCES.md`.
+by ~9 Pa (unexplained). Cavagna's cost is mechanical, not metabolic. Suit autonomy (8 h), the 25% reserve and the antenna heights are team assumptions based on Apollo figures, not Mars suit specifications. Shadows and radio line of sight come from the terrain model alone, so they ignore boulders and small relief. Radiation is only derived from elevation (one MSL RAD anchor) and is not a dose map. The Planet Map temperature layer is a latitude-only model. See `docs/SOURCES.md`. In our tests the app loaded in 2 to 10 seconds on three 2018 Android phones and in about 2 seconds on a PC.
 
 ---
 
@@ -270,7 +270,7 @@ Static site: `vercel.json` publishes the `web/` folder with no build step.
 2. Import the GitHub repository into Vercel (framework: "Other"), or run `npx vercel --prod` from the root.
 3. Check that no "Synthetic" banner appears: if one does, `web/data/site/` came from a demo.
 
-A GitHub workflow that rebuilds the data will come after the clock and the languages.
+A GitHub workflow that rebuilds the data is planned (see section 12).
 
 ---
 
@@ -297,8 +297,14 @@ PDS3 reading against a server that cuts transfers, MEDA units (real sol 1 file),
 - A GitHub workflow that rebuilds the data.
 - More detail windows (another HiRISE DTM site) and a site picker on the overview.
 - Confidence layer: replace the HiRISE DTM by the USGS Mars 2020 TRN DTM (it has an error map).
-- Globe: rock abundance, slope, wind, and a full-mission hydrogen map.
-- Temperature: replace the sinusoid by the published fits (Zenodo, Hueso et al.).
+- Planet map: rock abundance, slope, wind, and a full-mission hydrogen map.
+- Temperature: replace the sinusoid by a fit to the MEDA data we already use (NASA PDS).
 - Check the Mars24 coefficients and the perihelion $L_s$ used by the clock against the primary paper.
 - Trek basemap: test CORS and maximum zoom.
 - Team assumptions that still lack a source: 25% reserve, antenna heights (3 m, 1.8 m), roughness thresholds, terrain multiplier.
+
+---
+
+## 13. Credits and licence
+
+Code: Apache-2.0. Data: open NASA and USGS products, each listed with its link in `web/sources.html`. The site icon is AI-generated artwork (illustrative, not a NASA image). The demo video is a hypothetical scenario built from screen recordings of the app.
