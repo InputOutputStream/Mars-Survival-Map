@@ -1,0 +1,8 @@
+{
+ "file": "photo.jpg",
+ "px_m": 0.366,
+ "source_url": "https://www.uahirise.org/PDS/DTM/ESP/ORB_023500_023599/ESP_023524_1985_ESP_023379_1985/ESP_023524_1985_RED_A_01_ORTHO.JP2",
+ "width_px": 4096,
+ "height_px": 4096,
+ "note": "HiRISE orthoimage, contrast-stretched (1-99 percentile). Picture only: not used for slope, hazard or routes. Check alignment with the hillshade."
+}

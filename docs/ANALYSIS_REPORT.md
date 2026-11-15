@@ -77,7 +77,7 @@ Updated 2026-11-10. Generated from `web/sources.json`; edit that file, not this 
 - Exact file: https://zenodo.org/records/17947556/files/MCS_tsurf_corrected.nc?download=1
 - Data taken: MCS_tsurf_corrected.nc (14.9 MB, md5 921ebf89ba5f1ac35d89d62f83369c27, CC BY 4.0): tsurf_correct[MY 28..37, Ls 0..350 step 10, ltst 3 and 15, Lat -85..90 step 5, Lon -180..175 step 5] in K; 59% NaN; raw range 112.7 to 355.7 K.
 - Used for: Globe layers temp_mean_k and temp_diurnal_k (measured, replaces the energy-balance stand-in).
-- Status: Downloaded and inspected by the team on their machine (layout above). Associated paper (JGR 2025) not read yet: check the correction method and whether values are bin centres or edges.
+- Status: Downloaded and inspected by the team on their machine. Associated paper (JGR 2025) not read yet: check the correction method and whether values are bin centres or edges.
 
 ### D11 Mars Climate Database dust climatology: column dust optical depth maps, Mars Years 24 to 36
 *Montabone, Forget, Millour et al. (LMD, Open University, SSI); from NASA MRO MCS observations*  

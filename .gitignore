@@ -20,7 +20,7 @@ env/
 
 # Local downloads (HiRISE, MEDA, MOLA, Odyssey, TES, MCS, MCD: hundreds of MB, rebuilt by the scripts).
 # Keep the folder itself.
-/data/*
+!/web/data/
 !/data/.gitkeep
 
 # NOTE: web/data/ is NOT ignored on purpose. Vercel serves it, so the real output of

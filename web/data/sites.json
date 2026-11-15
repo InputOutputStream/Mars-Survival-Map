@@ -1,0 +1,24 @@
+[
+ {
+  "id": "jezero",
+  "name": "Jezero crater \u2014 HiRISE DTM",
+  "href": "index.html",
+  "center_lat": 18.44,
+  "center_lon": 77.52,
+  "width_m": 3998.2667744095556,
+  "height_m": 3998.2667744095556,
+  "px_m": 4.0386533074844,
+  "synthetic": false
+ },
+ {
+  "id": "jezero-1m",
+  "name": "Jezero crater \u2014 HiRISE DTM",
+  "href": "index.html?site=jezero-1m",
+  "center_lat": 18.44,
+  "center_lon": 77.52,
+  "width_m": 1498.3403770767122,
+  "height_m": 1498.3403770767122,
+  "px_m": 1.0096633268711,
+  "synthetic": false
+ }
+]

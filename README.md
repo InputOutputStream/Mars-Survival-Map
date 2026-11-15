@@ -1,7 +1,7 @@
 # Mars Survival Map
 
 A survival map of Mars, built only from **real NASA data** and documented physics.
-Project of the Red Circle team (Douala) for NASA Space Apps 2026, challenge "Interplanetary Survival Guide: Martian Map".
+Project of the Red Circle team for NASA Space Apps 2026, challenge "Interplanetary Survival Guide: Martian Map".
 
 Three levels:
 
@@ -79,8 +79,8 @@ with `PYTHONPATH=src`.
 
 ## 3. Build the real Jezero site
 
-Run every command **from the repository root**. The design sandbox could not reach NASA servers, so these downloads
-run on your machine. The server cuts long transfers; the scripts retry automatically, so a slow connection is fine.
+Run every command **from the repository root**. 
+The server cuts long transfers; the scripts retry automatically for slow connections.
 
 ```bash
 # The two data links, defined once (HiRISE stereo pair ESP_023524_1985 / ESP_023379_1985; Windows PowerShell: $DTM = "..." and use $DTM)
@@ -227,7 +227,6 @@ node tests/marsclock_test.mjs && node tests/survival_test.mjs
 
 # --- 7. Documents -----------------------------------------------------------------------------------------------------
 python scripts/make_report.py                              # web/sources.json -> docs/ANALYSIS_REPORT.md
-(cd docs/latex && pdflatex report.tex && pdflatex report.tex && pdflatex slides.tex && pdflatex slides.tex)
 
 # --- 8. Deploy --------------------------------------------------------------------------------------------------------
 git add web/data && git commit -m "Rebuild data" && git push    # Vercel publishes web/ (no build step)
@@ -276,8 +275,6 @@ Static site: `vercel.json` publishes the `web/` folder with no build step.
 2. Import the GitHub repository into Vercel (framework: "Other"), or run `npx vercel --prod` from the root.
 3. Check that no "Synthetic" banner appears: if one does, `web/data/site/` came from a demo.
 
-A GitHub workflow that rebuilds the data will come after the clock and the languages.
-
 ---
 
 ## 11. Tests
@@ -296,13 +293,8 @@ PDS3 reading against a server that cuts transfers, MEDA units (real sol 1 file),
 
 ## 12. Status and to do
 
-**Done:** simulated walker (2D, 3D, walker's view), tutorial tour, English and French, safety tools (reach, radio, shadows, time budget), saved places, route card, offline mode, overview page, detail tiers and photo layer, routing in a Web Worker, walking-speed and line-thickness sliders, technical report and slides (`docs/latex/`).
+**Done:** simulated walker (2D, 3D, walker's view), tutorial tour, English and French, safety tools (reach, radio, shadows, time budget), saved places, route card, offline mode, overview page, detail tiers and photo layer, routing in a Web Worker, walking-speed and line-thickness.
 
-**Needs your machine or your data (not verifiable from the design sandbox):**
-- Build and check the 1 m tier and its photo (section 5): check the photo lines up with the hillshade.
-- Ewondo words: `web/lang/ewo.js` is empty (falls back to French, then English); it needs native speakers (`web/lang/help.html`).
-- Primary NASA source for the 8 h PLSS autonomy (currently a secondary source): https://history.nasa.gov/alsj/ALSJ-FlightPLSS.pdf
-- Test the demo on the phones and browsers you will use (Chrome and Brave can behave differently).
 
 **Open work:**
 - A GitHub workflow that rebuilds the data.

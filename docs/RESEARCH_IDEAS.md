@@ -1,6 +1,6 @@
 # Research and ideas: how to make the Mars survival map better
 
-Written 2026-11-09. Findings come from the pages listed under "Sources"; ideas marked (idea) are ours, not taken from those pages.
+Findings come from the pages listed under "Sources"; ideas marked (idea) are ours, not taken from those pages.
 
 ## 1. What similar tools do
 
@@ -28,7 +28,7 @@ Written 2026-11-09. Findings come from the pages listed under "Sources"; ideas m
 
 ## 3. More than one site
 
-Today the search box finds places inside Jezero only. We can do more, and the design is cheap:
+Today the search box finds places inside Jezero only. We can do more:
 
 - a `web/data/sites/index.json` listing sites (name, centre, bounds, status) and one folder per site with the same files `build_jezero.py` writes;
 - the search box and a site picker switch between them;

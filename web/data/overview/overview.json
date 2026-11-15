@@ -1,0 +1,21 @@
+{
+ "lat_min": 17.580519910544755,
+ "lat_max": 19.29018700686615,
+ "lon_min": 76.99743706146002,
+ "lon_max": 78.58256332408818,
+ "extent_source": "CRS (lon0 0.0, lat_ts 18.4663)",
+ "width": 1114,
+ "height": 1266,
+ "px_x_m": 80.01441777977986,
+ "px_y_m": 80.04739336492894,
+ "native_px_m": 20,
+ "downsample": 4,
+ "zmin": -3455.1953125,
+ "zmax": -482.08764266967773,
+ "source": {
+  "name": "Mars 2020 Science Investigation CTX DEM Mosaic (USGS Astrogeology, Calef 2021)",
+  "url": "https://planetarymaps.usgs.gov/mosaic/mars2020_trn/CTX/ScienceInvestigationMaps_JPL/M20_JezeroCrater_CTXDEM_20m.tif",
+  "page": "https://astrogeology.usgs.gov/search/map/mars_2020_science_investigation_ctx_dem_mosaic",
+  "licence": "public domain, please cite authors"
+ }
+}

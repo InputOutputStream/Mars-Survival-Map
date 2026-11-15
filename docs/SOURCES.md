@@ -40,14 +40,14 @@ NOTE (2026-11-07): the live source registry is `web/sources.json` (shown on `web
 6. **Elevation → radiation/pressure** relations in `schema.derive_from_elevation` are my approximations; replace with Guo et al. 2015 + MEDA pressure data.
 
 ## D. Software resources
-| Name | URL | Use | Licence |
-|---|---|---|---|
-| Leaflet 1.9.4 | https://leafletjs.com | 2D map viewer (vendored) | BSD-2-Clause |
-| three.js r160 | https://threejs.org | 3D terrain view (vendored) | MIT |
-| GDAL | https://gdal.org | Read/clip/convert PDS `.IMG` and GeoTIFF; can read a window of a remote file via `/vsicurl/` (untested here) | MIT/X |
-| NumPy | https://numpy.org | Raster maths | BSD |
-| Pillow | https://python-pillow.org | PNG output | HPND |
-| Requests | https://requests.readthedocs.io | Polite downloads | Apache-2.0 |
+| Name          | URL                             | Use                                                                                                          | Licence      |
+| ------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------ |
+| Leaflet 1.9.4 | https://leafletjs.com           | 2D map viewer (vendored)                                                                                     | BSD-2-Clause |
+| three.js r160 | https://threejs.org             | 3D terrain view (vendored)                                                                                   | MIT          |
+| GDAL          | https://gdal.org                | Read/clip/convert PDS `.IMG` and GeoTIFF; can read a window of a remote file via `/vsicurl/` (untested here) | MIT/X        |
+| NumPy         | https://numpy.org               | Raster maths                                                                                                 | BSD          |
+| Pillow        | https://python-pillow.org       | PNG output                                                                                                   | HPND         |
+| Requests      | https://requests.readthedocs.io | Polite downloads                                                                                             | Apache-2.0   |
 
 
 ## Update 2026-11-06 — browser tests and Cavagna 2000
